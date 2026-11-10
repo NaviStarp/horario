@@ -16,17 +16,17 @@
 	let { data }: PageProps = $props();
 
 	let currentYear = $state(new Date().getFullYear());
-	let currentMonth = $state(new Date().getMonth()); // 0-indexed (0 = Enero)
+	let currentMonth = $state(new Date().getMonth());
 
 	let monthLogs = $state<Record<string, DailyLog>>({});
 	let totalScheduleBlocksCount = $state<number>(0);
 	let isLoading = $state(true);
 
 	const MONTH_NAMES = [
-		'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-		'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
+		'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO',
+		'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
 	];
-	const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+	const DAY_NAMES = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
 
 	let isConfigured = $derived(data.isConfigured);
 	let user = $derived(data.user);
@@ -65,7 +65,6 @@
 					totalScheduleBlocksCount = blocksRes.data.length;
 				}
 			} else {
-				// LocalStorage
 				const savedLogs = JSON.parse(localStorage.getItem('demo_horario_daily_logs') || '{}');
 				monthLogs = savedLogs;
 				const savedBlocks = JSON.parse(localStorage.getItem('demo_horario_blocks') || '[]');
@@ -93,7 +92,7 @@
 			currentMonth = 0;
 			currentYear++;
 		} else {
-			currentMonth++;
+			currentMonth--;
 		}
 		loadMonthData();
 	}
@@ -105,7 +104,6 @@
 		loadMonthData();
 	}
 
-	// Construir cuadrícula de días del mes
 	let calendarDays = $derived.by(() => {
 		const days: Array<{
 			dateStr: string;
@@ -118,11 +116,9 @@
 		const firstDayOfMonth = new Date(currentYear, currentMonth, 1);
 		const lastDayOfMonth = new Date(currentYear, currentMonth + 1, 0);
 
-		// getDay() devuelve 0 para domingo. Convertir a lunes = 0 ... domingo = 6
 		let firstDayIndex = firstDayOfMonth.getDay() - 1;
 		if (firstDayIndex === -1) firstDayIndex = 6;
 
-		// Días del mes anterior para rellenar
 		const prevMonthLastDay = new Date(currentYear, currentMonth, 0).getDate();
 		for (let i = firstDayIndex - 1; i >= 0; i--) {
 			const d = prevMonthLastDay - i;
@@ -138,7 +134,6 @@
 			});
 		}
 
-		// Días del mes actual
 		for (let d = 1; d <= lastDayOfMonth.getDate(); d++) {
 			const dateStr = `${currentYear}-${String(currentMonth + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 			days.push({
@@ -150,7 +145,6 @@
 			});
 		}
 
-		// Rellenar hasta completar semanas
 		const remaining = 7 - (days.length % 7);
 		if (remaining < 7) {
 			for (let d = 1; d <= remaining; d++) {
@@ -171,68 +165,68 @@
 	});
 </script>
 
-<div class="space-y-6 pb-12">
-	<!-- Encabezado de Historial -->
-	<div class="bg-white dark:bg-zinc-900 rounded-2xl p-5 shadow-sm border border-zinc-200 dark:border-zinc-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<div class="space-y-6 pb-12 font-mono">
+	<!-- Encabezado de Historial Técnico -->
+	<div class="cad-frame bg-[#070d0a] rounded-[10px] p-4 sm:p-5 border border-[rgba(255,255,255,0.08)] flex flex-col sm:flex-row sm:items-center justify-between gap-4">
 		<div class="flex items-center gap-3">
-			<div class="p-2.5 bg-indigo-50 dark:bg-indigo-950/60 text-indigo-600 dark:text-indigo-400 rounded-xl">
-				<Calendar class="w-6 h-6" />
+			<div class="p-2 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981]">
+				<Calendar class="w-5 h-5" />
 			</div>
 			<div>
-				<h1 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100">
-					Historial de Hábitos y Diario
+				<h1 class="text-base sm:text-lg font-bold tracking-wider text-[#f3f4f6]">
+					// MONTHLY_CAD_MATRIX
 				</h1>
-				<p class="text-xs text-zinc-500 dark:text-zinc-400">
-					Visualiza tu consistencia mensual y accede a cualquier jornada pasada
+				<p class="text-[11px] text-[#64748b] mt-0.5">
+					HABIT_CONSISTENCY &amp; JOURNAL_INDEX
 				</p>
 			</div>
 		</div>
 
 		<!-- Selector de Mes -->
-		<div class="flex items-center gap-2 self-end sm:self-center">
+		<div class="flex items-center gap-2 self-end sm:self-center text-xs">
 			<button
 				type="button"
 				onclick={goToPreviousMonth}
-				class="p-2 rounded-xl text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+				class="p-1.5 rounded-[5px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer"
 				aria-label="Mes anterior"
 			>
-				<ChevronLeft class="w-4 h-4" />
+				<ChevronLeft class="w-4 h-4 text-[#10b981]" />
 			</button>
 
-			<span class="text-sm font-semibold text-zinc-900 dark:text-zinc-100 min-w-[130px] text-center">
+			<span class="font-bold text-xs text-[#f3f4f6] min-w-[130px] text-center tracking-wider px-2">
 				{MONTH_NAMES[currentMonth]} {currentYear}
 			</span>
 
 			<button
 				type="button"
 				onclick={goToNextMonth}
-				class="p-2 rounded-xl text-zinc-600 dark:text-zinc-400 hover:bg-zinc-100 dark:hover:bg-zinc-800 transition-colors"
+				class="p-1.5 rounded-[5px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer"
 				aria-label="Mes siguiente"
 			>
-				<ChevronRight class="w-4 h-4" />
+				<ChevronRight class="w-4 h-4 text-[#10b981]" />
 			</button>
 
 			<button
 				type="button"
 				onclick={goToCurrentMonth}
-				class="ml-2 px-3 py-1.5 text-xs font-medium rounded-lg bg-zinc-100 dark:bg-zinc-800 hover:bg-zinc-200 text-zinc-700 dark:text-zinc-300 transition-colors"
+				class="ml-2 px-2.5 py-1 text-[11px] font-semibold text-[#10b981] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] hover:border-[#10b981] rounded-[5px] transition-all cursor-pointer"
 			>
-				Este Mes
+				CURRENT_CYCLE
 			</button>
 		</div>
 	</div>
 
-	<!-- Calendario Mensual -->
-	<div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 overflow-hidden">
-		<!-- Cabecera de Días de la Semana -->
-		<div class="grid grid-cols-7 border-b border-zinc-200 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-800/40 text-center text-xs font-semibold text-zinc-500 dark:text-zinc-400 py-2.5">
+	<!-- Rejilla Calendario Tipo CAD -->
+	<div class="cad-frame bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-hidden">
+		<!-- Cabecera Días -->
+		<div class="grid grid-cols-7 border-b border-[rgba(255,255,255,0.08)] bg-[#040806] text-center text-[11px] font-bold text-[#64748b] py-2">
 			{#each DAY_NAMES as day}
 				<div>{day}</div>
 			{/each}
 		</div>
 
-		<!-- Rejilla de Celdas -->
-		<div class="grid grid-cols-7 divide-x divide-y divide-zinc-200/70 dark:divide-zinc-800/70">
+		<!-- Celdas de Días -->
+		<div class="grid grid-cols-7 divide-x divide-y divide-[rgba(255,255,255,0.08)]">
 			{#each calendarDays as cell (cell.dateStr)}
 				{@const hasDiary = Boolean(cell.log?.diary_content && cell.log.diary_content.trim())}
 				{@const completedCount = cell.log?.completed_blocks?.length || 0}
@@ -240,38 +234,38 @@
 
 				<a
 					href="/?date={cell.dateStr}"
-					class="group min-h-[95px] sm:min-h-[110px] p-2 sm:p-2.5 flex flex-col justify-between transition-all hover:bg-indigo-50/40 dark:hover:bg-indigo-950/20
-						{cell.isCurrentMonth ? 'bg-white dark:bg-zinc-900' : 'bg-zinc-50/40 dark:bg-zinc-900/30 opacity-40'}
-						{cell.isToday ? 'ring-2 ring-indigo-500 ring-inset bg-indigo-50/10' : ''}"
+					class="group min-h-[90px] sm:min-h-[105px] p-2 flex flex-col justify-between transition-all cursor-pointer
+						{cell.isCurrentMonth ? 'bg-[#070d0a] hover:bg-[#0e1813]' : 'bg-[#020503] opacity-35 hover:opacity-80'}
+						{cell.isToday ? 'ring-1 ring-[#10b981] ring-inset bg-[#0e1813] oled-glow' : ''}"
 				>
 					<div class="flex items-center justify-between">
-						<span class="text-xs sm:text-sm font-semibold {cell.isToday ? 'w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold' : 'text-zinc-700 dark:text-zinc-300'}">
+						<span class="text-xs font-bold {cell.isToday ? 'w-5 h-5 rounded-[4px] bg-[#10b981] text-[#010302] flex items-center justify-center font-extrabold shadow-[0_0_8px_#10b981]' : 'text-[#f3f4f6]'}">
 							{cell.dayNumber}
 						</span>
 
 						{#if mood}
-							<span class="text-sm" title="Ánimo">{mood}</span>
+							<span class="text-xs" title="Mood">{mood}</span>
 						{/if}
 					</div>
 
-					<!-- Indicadores del Día -->
+					<!-- Indicadores Técnicos -->
 					<div class="space-y-1 my-1">
 						{#if completedCount > 0}
-							<div class="flex items-center gap-1 text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-								<CheckCircle2 class="w-3 h-3 flex-shrink-0" />
-								<span>{completedCount} tareas</span>
+							<div class="flex items-center gap-1 text-[10px] text-[#10b981] font-mono font-medium">
+								<span class="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_4px_#10b981]"></span>
+								<span>{completedCount} BLOQUES</span>
 							</div>
 						{/if}
 
 						{#if hasDiary}
-							<div class="flex items-center gap-1 text-[10px] sm:text-xs text-indigo-600 dark:text-indigo-400 font-medium">
-								<BookOpen class="w-3 h-3 flex-shrink-0" />
-								<span class="truncate">Diario escrito</span>
+							<div class="flex items-center gap-1 text-[10px] text-[#38bdf8] font-mono font-medium">
+								<span class="w-1.5 h-1.5 rounded-full bg-[#38bdf8]"></span>
+								<span>DIARY_LOG</span>
 							</div>
 						{/if}
 					</div>
 
-					<div class="text-[10px] text-zinc-400 group-hover:text-indigo-600 dark:group-hover:text-indigo-400 flex items-center justify-end">
+					<div class="text-[9px] text-[#64748b] group-hover:text-[#10b981] flex items-center justify-end">
 						<ArrowRight class="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
 					</div>
 				</a>

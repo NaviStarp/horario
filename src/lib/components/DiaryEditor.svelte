@@ -13,7 +13,7 @@
 		ListTodo,
 		Heading,
 		Quote,
-		Smile
+		Cpu
 	} from 'lucide-svelte';
 
 	let {
@@ -37,7 +37,6 @@
 
 	let debounceTimer: any = null;
 
-	// Sincronizar reactivamente cuando cambian las props
 	$effect(() => {
 		if (debounceTimer) clearTimeout(debounceTimer);
 		content = diaryContent;
@@ -50,13 +49,13 @@
 	});
 
 	const MOOD_OPTIONS = [
-		{ emoji: '🚀', label: 'Productivo' },
-		{ emoji: '🎯', label: 'Enfocado' },
-		{ emoji: '😊', label: 'Bien' },
-		{ emoji: '🧘', label: 'Relajado' },
-		{ emoji: '🤔', label: 'Reflexivo' },
-		{ emoji: '🥱', label: 'Cansado' },
-		{ emoji: '😓', label: 'Estresado' }
+		{ emoji: '🚀', code: 'PROD', label: 'Productivo' },
+		{ emoji: '🎯', code: 'FOCUS', label: 'Enfocado' },
+		{ emoji: '😊', code: 'OPTIMAL', label: 'Bien' },
+		{ emoji: '🧘', code: 'ZEN', label: 'Relajado' },
+		{ emoji: '🤔', code: 'THINK', label: 'Reflexivo' },
+		{ emoji: '😴', code: 'REST', label: 'Cansado' },
+		{ emoji: '😓', code: 'LOAD', label: 'Estresado' }
 	];
 
 	function triggerAutosave() {
@@ -99,7 +98,6 @@
 		triggerAutosave();
 	}
 
-	// Insertar sintaxis Markdown en la posición del cursor
 	function insertMarkdown(prefix: string, suffix: string = '') {
 		if (!textareaEl) return;
 		const start = textareaEl.selectionStart;
@@ -121,15 +119,14 @@
 		}, 0);
 	}
 
-	// Vista previa Markdown segura con marked
 	let renderedHtml = $derived.by(() => {
 		if (!content.trim()) {
-			return '<p class="text-zinc-400 italic">No hay notas escritas para este día. Empieza a escribir en la pestaña "Escribir".</p>';
+			return '<p class="text-[#64748b] font-mono text-xs italic">// BUFFER_EMPTY: Inicia la captura de reflexiones en la pestaña [ 01 // EDIT ]</p>';
 		}
 		try {
 			return marked.parse(content, { async: false, breaks: true }) as string;
 		} catch {
-			return '<p class="text-rose-500">Error al procesar Markdown</p>';
+			return '<p class="text-[#ef4444] font-mono text-xs">// PARSER_ERROR: Fallo al procesar Markdown</p>';
 		}
 	});
 
@@ -139,71 +136,72 @@
 	let charCount = $derived(content.length);
 </script>
 
-<div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-sm border border-zinc-200 dark:border-zinc-800 p-5 transition-all">
-	<!-- Encabezado -->
-	<div class="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-zinc-100 dark:border-zinc-800 mb-4">
-		<div class="flex items-center gap-2">
-			<div class="p-2 bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 rounded-xl">
-				<BookOpen class="w-5 h-5" />
+<div class="cad-frame bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-4 sm:p-5 transition-all">
+	<!-- Encabezado Técnico -->
+	<div class="flex flex-wrap items-center justify-between gap-3 pb-3.5 border-b border-[rgba(255,255,255,0.08)] mb-4">
+		<div class="flex items-center gap-2.5">
+			<div class="p-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981]">
+				<BookOpen class="w-4 h-4" />
 			</div>
 			<div>
-				<h2 class="font-semibold text-lg text-zinc-900 dark:text-zinc-100">Diario del Día</h2>
-				<p class="text-xs text-zinc-500 dark:text-zinc-400">
-					Reflexiones, aprendizajes y balance personal
+				<h2 class="font-mono font-semibold text-sm text-[#f3f4f6]">
+					// DIARY_JOURNAL
+				</h2>
+				<p class="font-mono text-[11px] text-[#64748b]">
+					DEBOUNCED_AUTOSAVE: 1500ms // UTF-8
 				</p>
 			</div>
 		</div>
 
-		<!-- Indicador discreto de Autoguardado -->
+		<!-- Estado de Autoguardado y Pestañas -->
 		<div class="flex items-center gap-2">
 			{#if saveStatus === 'pending'}
-				<span class="inline-flex items-center gap-1.5 text-xs text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 px-2.5 py-1 rounded-full">
-					<span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span>
-					Pendiente...
+				<span class="inline-flex items-center gap-1 font-mono text-[10px] text-[#f59e0b] bg-[#f59e0b]/10 border border-[#f59e0b]/30 px-2 py-0.5 rounded-[4px]">
+					<span class="w-1.5 h-1.5 rounded-full bg-[#f59e0b] animate-pulse"></span>
+					DIRTY_BUFFER
 				</span>
 			{:else if saveStatus === 'saving'}
-				<span class="inline-flex items-center gap-1.5 text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-950/40 px-2.5 py-1 rounded-full">
-					<Loader2 class="w-3 h-3 animate-spin" />
-					Guardando...
+				<span class="inline-flex items-center gap-1 font-mono text-[10px] text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/30 px-2 py-0.5 rounded-[4px]">
+					<Loader2 class="w-2.5 h-2.5 animate-spin" />
+					COMMITTING...
 				</span>
 			{:else if saveStatus === 'saved'}
-				<span class="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-1 rounded-full">
-					<Check class="w-3 h-3 stroke-[2.5]" />
-					Guardado ✓
+				<span class="inline-flex items-center gap-1 font-mono text-[10px] text-[#10b981] bg-[#10b981]/10 border border-[rgba(16,185,129,0.32)] px-2 py-0.5 rounded-[4px]">
+					<Check class="w-2.5 h-2.5 stroke-[3]" />
+					SYNCED ✓
 				</span>
 			{:else if saveStatus === 'error'}
-				<span class="inline-flex items-center gap-1 text-xs text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950/40 px-2.5 py-1 rounded-full">
-					Error al guardar
+				<span class="inline-flex items-center gap-1 font-mono text-[10px] text-[#ef4444] bg-[#ef4444]/10 border border-[#ef4444]/30 px-2 py-0.5 rounded-[4px]">
+					SYNC_FAIL
 				</span>
 			{/if}
 
-			<!-- Selector de Pestañas: Escribir / Vista Previa -->
-			<div class="flex items-center bg-zinc-100 dark:bg-zinc-800 p-0.5 rounded-lg text-xs">
+			<!-- Selector Escribir / Vista Previa -->
+			<div class="flex items-center bg-[#0a120e] p-0.5 rounded-[5px] border border-[rgba(255,255,255,0.08)] font-mono text-xs">
 				<button
 					type="button"
 					onclick={() => activeTab = 'write'}
-					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors {activeTab === 'write' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs' : 'text-zinc-600 dark:text-zinc-400'}"
+					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] font-medium transition-all cursor-pointer {activeTab === 'write' ? 'bg-[#0e1813] text-[#10b981] border border-[rgba(16,185,129,0.32)] font-semibold' : 'text-[#9ca3af] hover:text-[#f3f4f6]'}"
 				>
 					<Edit3 class="w-3 h-3" />
-					Escribir
+					01 // EDIT
 				</button>
 				<button
 					type="button"
 					onclick={() => activeTab = 'preview'}
-					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-medium transition-colors {activeTab === 'preview' ? 'bg-white dark:bg-zinc-700 text-zinc-900 dark:text-zinc-100 shadow-xs' : 'text-zinc-600 dark:text-zinc-400'}"
+					class="inline-flex items-center gap-1 px-2.5 py-1 rounded-[4px] font-medium transition-all cursor-pointer {activeTab === 'preview' ? 'bg-[#0e1813] text-[#10b981] border border-[rgba(16,185,129,0.32)] font-semibold' : 'text-[#9ca3af] hover:text-[#f3f4f6]'}"
 				>
 					<Eye class="w-3 h-3" />
-					Vista previa
+					02 // PREVIEW
 				</button>
 			</div>
 		</div>
 	</div>
 
-	<!-- Selector de Estado de Ánimo (Mood) -->
-	<div class="flex items-center gap-2 mb-4 overflow-x-auto pb-1 text-xs">
-		<span class="text-zinc-400 dark:text-zinc-500 font-medium text-[11px] uppercase tracking-wider flex-shrink-0 flex items-center gap-1">
-			<Smile class="w-3.5 h-3.5" />
-			Ánimo:
+	<!-- Selector de Estado de Ánimo / Telemetría Mental -->
+	<div class="flex items-center gap-2 mb-3.5 overflow-x-auto pb-1 font-mono text-xs">
+		<span class="text-[#64748b] text-[10px] tracking-wider flex-shrink-0">
+			MOOD_TAG:
 		</span>
 		<div class="flex items-center gap-1.5">
 			{#each MOOD_OPTIONS as item}
@@ -211,72 +209,67 @@
 					type="button"
 					onclick={() => handleMoodSelect(item.emoji)}
 					title={item.label}
-					class="px-2.5 py-1 rounded-full border text-xs transition-all flex items-center gap-1 cursor-pointer
+					class="px-2 py-0.5 rounded-[4px] border text-[11px] font-mono transition-all flex items-center gap-1 cursor-pointer
 						{selectedMood === item.emoji
-							? 'bg-emerald-500/15 border-emerald-500 text-emerald-800 dark:text-emerald-300 font-semibold ring-1 ring-emerald-500/30 shadow-xs scale-105'
-							: 'border-zinc-200 dark:border-zinc-800 bg-zinc-50/80 dark:bg-zinc-800/60 text-zinc-600 dark:text-zinc-400 hover:border-zinc-300 dark:hover:border-zinc-700'}"
+							? 'bg-[#0e1813] border-[#10b981] text-[#10b981] font-semibold shadow-[0_0_8px_rgba(16,185,129,0.25)]'
+							: 'border-[rgba(255,255,255,0.08)] bg-[#0a120e] text-[#9ca3af] hover:border-[rgba(255,255,255,0.16)] hover:text-[#f3f4f6]'}"
 				>
 					<span>{item.emoji}</span>
-					<span class="hidden sm:inline text-[11px]">{item.label}</span>
+					<span class="text-[10px]">{item.code}</span>
 				</button>
 			{/each}
 		</div>
 	</div>
 
-	<!-- Barra de Formato Rápido Markdown (Solo en modo Escribir) -->
+	<!-- Modo Edición -->
 	{#if activeTab === 'write'}
-		<div class="flex items-center gap-1 mb-2 p-1 bg-zinc-50 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 rounded-lg text-zinc-600 dark:text-zinc-400">
+		<!-- Toolbar CAD con accesos rápidos -->
+		<div class="flex items-center gap-1 mb-2 p-1 bg-[#0a120e] border border-[rgba(255,255,255,0.08)] rounded-[6px] text-[#9ca3af]">
 			<button
 				type="button"
 				onclick={() => insertMarkdown('**', '**')}
-				class="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-				title="Negrita (**texto**)"
-				aria-label="Negrita"
+				class="p-1 rounded-[3px] hover:bg-[#0e1813] hover:text-[#10b981] cursor-pointer"
+				title="Negrita (**bold**)"
 			>
 				<Bold class="w-3.5 h-3.5" />
 			</button>
 			<button
 				type="button"
 				onclick={() => insertMarkdown('*', '*')}
-				class="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-				title="Cursiva (*texto*)"
-				aria-label="Cursiva"
+				class="p-1 rounded-[3px] hover:bg-[#0e1813] hover:text-[#10b981] cursor-pointer"
+				title="Cursiva (*italic*)"
 			>
 				<Italic class="w-3.5 h-3.5" />
 			</button>
 			<button
 				type="button"
 				onclick={() => insertMarkdown('### ')}
-				class="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-				title="Encabezado (### Título)"
-				aria-label="Encabezado"
+				class="p-1 rounded-[3px] hover:bg-[#0e1813] hover:text-[#10b981] cursor-pointer"
+				title="Encabezado (### Header)"
 			>
 				<Heading class="w-3.5 h-3.5" />
 			</button>
 			<button
 				type="button"
 				onclick={() => insertMarkdown('- ')}
-				class="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
+				class="p-1 rounded-[3px] hover:bg-[#0e1813] hover:text-[#10b981] cursor-pointer"
 				title="Lista (- item)"
-				aria-label="Lista desordenada"
 			>
 				<List class="w-3.5 h-3.5" />
 			</button>
 			<button
 				type="button"
 				onclick={() => insertMarkdown('- [ ] ')}
-				class="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-				title="Lista de tareas (- [ ] tarea)"
-				aria-label="Lista de tareas"
+				class="p-1 rounded-[3px] hover:bg-[#0e1813] hover:text-[#10b981] cursor-pointer"
+				title="Checklist (- [ ] task)"
 			>
 				<ListTodo class="w-3.5 h-3.5" />
 			</button>
 			<button
 				type="button"
 				onclick={() => insertMarkdown('> ')}
-				class="p-1.5 rounded hover:bg-zinc-200 dark:hover:bg-zinc-700 hover:text-zinc-900 dark:hover:text-zinc-100"
-				title="Cita (> frase)"
-				aria-label="Cita"
+				class="p-1 rounded-[3px] hover:bg-[#0e1813] hover:text-[#10b981] cursor-pointer"
+				title="Quote (> quote)"
 			>
 				<Quote class="w-3.5 h-3.5" />
 			</button>
@@ -284,39 +277,39 @@
 			<button
 				type="button"
 				onclick={executeSave}
-				class="px-2.5 py-1 text-xs font-medium text-emerald-700 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 rounded transition-colors"
+				class="px-2 py-0.5 font-mono text-[10px] text-[#10b981] hover:bg-[#10b981]/15 rounded-[3px] cursor-pointer"
 			>
-				Guardar ahora
+				[ COMMIT NOW ]
 			</button>
 		</div>
 
-		<!-- Área de Escritura -->
+		<!-- Área de Entrada de Texto -->
 		<textarea
 			bind:this={textareaEl}
 			value={content}
 			oninput={handleContentChange}
-			placeholder="Escribe tus reflexiones del día aquí... ¿Qué logros tuviste hoy? ¿Qué podrías mejorar mañana? (Soporta Markdown: títulos, negritas, listas...)"
+			placeholder="// Escribe reflexiones, hitos o bloqueos técnicos del día... (Soporta Markdown: títulos, negritas, listas...)"
 			rows="12"
-			class="w-full p-4 text-sm bg-zinc-50/70 dark:bg-zinc-800/40 border border-zinc-200 dark:border-zinc-800 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500 text-zinc-900 dark:text-zinc-100 font-sans leading-relaxed resize-y transition-all placeholder-zinc-400"
+			class="w-full p-3.5 font-mono text-xs bg-[#070d0a] border border-[rgba(255,255,255,0.08)] focus:border-[#10b981] rounded-[6px] text-[#f3f4f6] placeholder-[#64748b] leading-relaxed resize-y focus:outline-none transition-all"
 		></textarea>
 	{:else}
-		<!-- Vista Previa Renderizada con Markdown -->
-		<div class="min-h-[288px] p-5 bg-zinc-50/50 dark:bg-zinc-800/30 border border-zinc-200 dark:border-zinc-800 rounded-xl overflow-y-auto">
-			<div class="prose prose-sm dark:prose-invert max-w-none text-zinc-800 dark:text-zinc-200 space-y-2">
+		<!-- Vista Previa Renderizada -->
+		<div class="min-h-[288px] p-4 bg-[#050a07] border border-[rgba(255,255,255,0.08)] rounded-[6px] overflow-y-auto">
+			<div class="prose prose-invert prose-sm max-w-none font-sans text-xs text-[#f3f4f6] space-y-2 leading-relaxed">
 				{@html renderedHtml}
 			</div>
 		</div>
 	{/if}
 
-	<!-- Barra inferior con estadísticas -->
-	<div class="flex items-center justify-between mt-3 text-xs text-zinc-400 dark:text-zinc-500">
+	<!-- Métricas de Telemetría Inferior -->
+	<div class="flex items-center justify-between mt-3 font-mono text-[10px] text-[#64748b]">
 		<div class="flex items-center gap-3">
-			<span>{wordCount} palabras</span>
-			<span>•</span>
-			<span>{charCount} caracteres</span>
+			<span>WORDS: <strong class="text-[#9ca3af]">{wordCount}</strong></span>
+			<span class="text-[rgba(255,255,255,0.08)]">|</span>
+			<span>CHARS: <strong class="text-[#9ca3af]">{charCount}</strong></span>
 		</div>
-		<div>
-			<span class="text-[11px]">Autoguardado a los 1.5s de inactividad</span>
+		<div class="text-[#10b981]/80">
+			AUTO_PERSIST: ENABLED
 		</div>
 	</div>
 </div>

@@ -1,7 +1,5 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { page } from '$app/state';
-	import { goto } from '$app/navigation';
 	import type { PageProps } from './$types';
 	import type { ScheduleBlock, DailyLog, QuickNote } from '#lib/types/database';
 	import { DEFAULT_SCHEDULE_BLOCKS } from '#lib/utils/defaultBlocks';
@@ -22,15 +20,14 @@
 		ChevronRight,
 		Calendar as CalendarIcon,
 		RotateCcw,
-		Sparkles,
-		Flame
+		Terminal,
+		Cpu
 	} from 'lucide-svelte';
 
 	let { data }: PageProps = $props();
 
 	// Fecha seleccionada
 	let viewingDate = $state(getTodayString());
-	let isDateInputOpen = $state(false);
 
 	// Estado principal
 	let blocks = $state<ScheduleBlock[]>([]);
@@ -43,13 +40,11 @@
 	let isConfigured = $derived(data.isConfigured);
 	let user = $derived(data.user);
 
-	// Claves para modo demo en localStorage
 	const LOCAL_BLOCKS_KEY = 'demo_horario_blocks';
 	const LOCAL_LOGS_KEY = 'demo_horario_daily_logs';
 	const LOCAL_NOTES_KEY = 'demo_horario_quick_notes';
 
 	onMount(async () => {
-		// Revisar si viene un parámetro ?date=YYYY-MM-DD en la URL
 		const urlParams = new URLSearchParams(window.location.search);
 		const paramDate = urlParams.get('date');
 		if (paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate)) {
@@ -59,7 +54,6 @@
 		await loadInitialData();
 	});
 
-	// Si cambia la fecha seleccionada, cargar los datos correspondientes a ese día
 	$effect(() => {
 		if (viewingDate) {
 			loadDayLog(viewingDate);
@@ -70,7 +64,6 @@
 		isLoading = true;
 		try {
 			if (isConfigured && user) {
-				// Cargar desde Supabase
 				const [blocksRes, notesRes] = await Promise.all([
 					supabase
 						.from('schedule_blocks')
@@ -90,12 +83,10 @@
 					notes = notesRes.data as QuickNote[];
 				}
 			} else {
-				// Modo Demo / LocalStorage
 				const savedBlocks = localStorage.getItem(LOCAL_BLOCKS_KEY);
 				if (savedBlocks) {
 					blocks = JSON.parse(savedBlocks);
 				} else {
-					// Inicializar con la plantilla por defecto
 					const initial = DEFAULT_SCHEDULE_BLOCKS.map((b, i) => ({
 						...b,
 						id: `demo-block-${i + 1}`,
@@ -121,7 +112,7 @@
 						{
 							id: 'demo-note-2',
 							user_id: 'demo-user',
-							content: 'Revisar documentación de SvelteKit y Svelte 5',
+							content: 'Revisar documentación técnica de SvelteKit y Svelte 5 runes',
 							is_pinned: false,
 							is_archived: false,
 							created_at: new Date().toISOString()
@@ -158,7 +149,6 @@
 					diaryMood = null;
 				}
 			} else {
-				// LocalStorage
 				const logsMap = JSON.parse(localStorage.getItem(LOCAL_LOGS_KEY) || '{}');
 				const log = logsMap[date];
 				if (log) {
@@ -180,7 +170,6 @@
 	// ACCIONES DEL HORARIO (SCHEDULE BLOCKS)
 	// ==========================================================
 	async function handleToggleComplete(blockId: string) {
-		// Optimistic UI: actualizar de inmediato la vista
 		const isCurrentlyCompleted = completedBlockIds.includes(blockId);
 		let updated: string[];
 		if (isCurrentlyCompleted) {
@@ -190,7 +179,6 @@
 		}
 		completedBlockIds = updated;
 
-		// Persistir en daily_logs
 		try {
 			if (isConfigured && user) {
 				await supabase.from('daily_logs').upsert(
@@ -223,7 +211,6 @@
 	async function handleSaveBlock(blockData: Partial<ScheduleBlock>) {
 		if (isConfigured && user) {
 			if (blockData.id) {
-				// Update
 				const { error } = await supabase
 					.from('schedule_blocks')
 					.update(blockData)
@@ -232,7 +219,6 @@
 					blocks = blocks.map((b) => (b.id === blockData.id ? { ...b, ...blockData } : b));
 				}
 			} else {
-				// Insert
 				const { data: newBlock, error } = await supabase
 					.from('schedule_blocks')
 					.insert({
@@ -246,7 +232,6 @@
 				}
 			}
 		} else {
-			// LocalStorage demo
 			if (blockData.id) {
 				blocks = blocks.map((b) => (b.id === blockData.id ? { ...b, ...blockData } : b));
 			} else {
@@ -396,7 +381,6 @@
 		}
 	}
 
-	// Navegación de Fecha
 	function goToPreviousDay() {
 		viewingDate = shiftDate(viewingDate, -1);
 	}
@@ -412,11 +396,11 @@
 
 <div class="space-y-6 pb-12">
 	<!-- ======================================================= -->
-	<!-- CABECERA: SELECTOR DE FECHA Y NAVEGADOR -->
+	<!-- CABECERA TÉCNICA: FECHA & NAVEGADOR TELEMÉTRICO -->
 	<!-- ======================================================= -->
-	<section class="bg-white dark:bg-zinc-900 rounded-2xl p-4 sm:p-5 shadow-sm border border-zinc-200 dark:border-zinc-800 transition-all">
+	<section class="cad-frame bg-[#070d0a] rounded-[10px] p-4 sm:p-5 border border-[rgba(255,255,255,0.08)] transition-all">
 		<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-			<!-- Fecha y Estado -->
+			<!-- Fecha y Telemetría -->
 			<div class="flex items-center gap-3">
 				<div class="relative">
 					<input
@@ -427,64 +411,67 @@
 					/>
 					<label
 						for="native-date-picker"
-						class="p-2.5 rounded-xl bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-200 hover:bg-zinc-200 dark:hover:bg-zinc-700 cursor-pointer flex items-center justify-center transition-colors"
-						title="Seleccionar fecha"
+						class="p-2 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981] hover:border-[#10b981] hover:shadow-[0_0_8px_rgba(16,185,129,0.2)] cursor-pointer flex items-center justify-center transition-all"
+						title="Seleccionar fecha arbitraria"
 					>
-						<CalendarIcon class="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+						<CalendarIcon class="w-4 h-4" />
 					</label>
 				</div>
 
 				<div>
-					<div class="flex items-center gap-2">
-						<h1 class="text-xl sm:text-2xl font-bold text-zinc-900 dark:text-zinc-100 capitalize">
-							{formatDisplayDate(viewingDate)}
+					<div class="flex items-center gap-2 flex-wrap">
+						<span class="font-mono text-xs font-bold text-[#10b981] tracking-wider">
+							[{viewingDate}]
+						</span>
+						<h1 class="font-mono text-base sm:text-lg font-bold text-[#f3f4f6]">
+							// {formatDisplayDate(viewingDate).toUpperCase()}
 						</h1>
 						{#if isToday(viewingDate)}
-							<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30">
-								Hoy
+							<span class="px-2 py-0.2 rounded-[3px] font-mono text-[10px] font-bold bg-[#10b981]/15 text-[#10b981] border border-[rgba(16,185,129,0.32)] shadow-[0_0_6px_rgba(16,185,129,0.2)]">
+								ACTIVE // TODAY
 							</span>
 						{/if}
 						{#if diaryMood}
-							<span class="text-lg" title="Estado de ánimo registrado">{diaryMood}</span>
+							<span class="text-sm" title="Mood tag">{diaryMood}</span>
 						{/if}
 					</div>
-					<p class="text-xs text-zinc-500 dark:text-zinc-400 mt-0.5">
-						Planifica, ejecuta tus hábitos y reflexiona al final de la jornada
+					<p class="font-mono text-[11px] text-[#64748b] mt-0.5">
+						SYS_CYCLE: SCHEDULE_EXECUTION &amp; LOGGING
 					</p>
 				</div>
 			</div>
 
 			<!-- Botones de Navegación de Fecha -->
-			<div class="flex items-center gap-1.5 self-end sm:self-center">
+			<div class="flex items-center gap-1.5 self-end sm:self-center font-mono text-xs">
 				<button
 					type="button"
 					onclick={goToPreviousDay}
-					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+					class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer"
 					title="Día anterior"
 				>
-					<ChevronLeft class="w-4 h-4" />
-					<span class="hidden sm:inline">Ayer</span>
+					<ChevronLeft class="w-3.5 h-3.5 text-[#10b981]" />
+					<span class="hidden sm:inline">&lt; PREV</span>
 				</button>
 
 				{#if !isToday(viewingDate)}
 					<button
 						type="button"
 						onclick={goToToday}
-						class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white hover:bg-indigo-700 transition-colors shadow-xs cursor-pointer"
+						class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] font-bold bg-[#10b981] text-[#010302] hover:bg-[#34d399] transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer"
 					>
-						<RotateCcw class="w-3.5 h-3.5" />
-						Hoy
+						<RotateCcw class="w-3 h-3 stroke-[3]" />
+						TODAY
 					</button>
 				{/if}
 
 				<button
 					type="button"
 					onclick={goToNextDay}
-					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-medium bg-zinc-100 dark:bg-zinc-800 text-zinc-700 dark:text-zinc-300 hover:bg-zinc-200 dark:hover:bg-zinc-700 transition-colors cursor-pointer"
+					class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer"
 					title="Día siguiente"
 				>
-					<span class="hidden sm:inline">Mañana</span>
-					<ChevronRight class="w-4 h-4" />
+					<span class="hidden sm:inline">NEXT &gt;</span>
+					<ChevronRight class="w-3.5 h-3.5 text-[#10b981]" />
 				</button>
 			</div>
 		</div>
@@ -509,7 +496,6 @@
 
 		<!-- COLUMNA DERECHA: BLOQUE 2 - NOTAS RÁPIDAS + BLOQUE 3 - DIARIO -->
 		<div class="lg:col-span-5 space-y-6">
-			<!-- BLOQUE 2: NOTAS RÁPIDAS / INBOX -->
 			<QuickNotes
 				{notes}
 				onAddNote={handleAddNote}
@@ -518,7 +504,6 @@
 				onDeleteNote={handleDeleteNote}
 			/>
 
-			<!-- BLOQUE 3: DIARIO DEL DÍA -->
 			<DiaryEditor
 				{diaryContent}
 				mood={diaryMood}

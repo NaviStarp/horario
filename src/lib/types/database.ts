@@ -5,7 +5,7 @@ export type ScheduleBlock = {
 	start_time: string; // 'HH:MM' or 'HH:MM:SS'
 	end_time: string;   // 'HH:MM' or 'HH:MM:SS'
 	title: string;
-	category: 'estudio' | 'entreno' | 'ocio' | 'rutina' | 'trabajo' | string;
+	category: 'rutina' | 'estudio' | 'trabajo' | 'entreno' | 'ocio' | string;
 	sort_order: number;
 };
 
@@ -32,6 +32,7 @@ export type QuickNote = {
 export type CategoryMeta = {
 	id: string;
 	label: string;
+	code: string;
 	bgClass: string;
 	textClass: string;
 	borderClass: string;
@@ -42,41 +43,46 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 	rutina: {
 		id: 'rutina',
 		label: 'Rutina',
-		bgClass: 'bg-amber-500/10 dark:bg-amber-500/20',
-		textClass: 'text-amber-700 dark:text-amber-300',
-		borderClass: 'border-amber-500/30',
-		dotClass: 'bg-amber-500'
+		code: 'SYS.ROUTINE',
+		bgClass: 'bg-[#10b981]/10',
+		textClass: 'text-[#10b981]',
+		borderClass: 'border-[#10b981]/30',
+		dotClass: 'bg-[#10b981]'
 	},
 	estudio: {
 		id: 'estudio',
 		label: 'Estudio',
-		bgClass: 'bg-blue-500/10 dark:bg-blue-500/20',
-		textClass: 'text-blue-700 dark:text-blue-300',
-		borderClass: 'border-blue-500/30',
-		dotClass: 'bg-blue-500'
+		code: 'CORE.STUDY',
+		bgClass: 'bg-[#38bdf8]/10',
+		textClass: 'text-[#38bdf8]',
+		borderClass: 'border-[#38bdf8]/30',
+		dotClass: 'bg-[#38bdf8]'
 	},
 	trabajo: {
 		id: 'trabajo',
 		label: 'Trabajo',
-		bgClass: 'bg-emerald-500/10 dark:bg-emerald-500/20',
-		textClass: 'text-emerald-700 dark:text-emerald-300',
-		borderClass: 'border-emerald-500/30',
-		dotClass: 'bg-emerald-500'
+		code: 'OPS.WORK',
+		bgClass: 'bg-[#f59e0b]/10',
+		textClass: 'text-[#f59e0b]',
+		borderClass: 'border-[#f59e0b]/30',
+		dotClass: 'bg-[#f59e0b]'
 	},
 	entreno: {
 		id: 'entreno',
 		label: 'Entreno',
-		bgClass: 'bg-rose-500/10 dark:bg-rose-500/20',
-		textClass: 'text-rose-700 dark:text-rose-300',
-		borderClass: 'border-rose-500/30',
-		dotClass: 'bg-rose-500'
+		code: 'BIO.PHYS',
+		bgClass: 'bg-[#ef4444]/10',
+		textClass: 'text-[#ef4444]',
+		borderClass: 'border-[#ef4444]/30',
+		dotClass: 'bg-[#ef4444]'
 	},
 	ocio: {
 		id: 'ocio',
 		label: 'Ocio',
-		bgClass: 'bg-purple-500/10 dark:bg-purple-500/20',
-		textClass: 'text-purple-700 dark:text-purple-300',
-		borderClass: 'border-purple-500/30',
-		dotClass: 'bg-purple-500'
+		code: 'SYS.IDLE',
+		bgClass: 'bg-[#a78bfa]/10',
+		textClass: 'text-[#a78bfa]',
+		borderClass: 'border-[#a78bfa]/30',
+		dotClass: 'bg-[#a78bfa]'
 	}
 };

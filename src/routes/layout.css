@@ -1,1 +1,117 @@
 @import 'tailwindcss';
+
+@theme {
+	--color-background: #010302;
+	--color-background-pure: #000000;
+
+	--color-surface: #070d0a;
+	--color-surface-pill: #0a120e;
+	--color-surface-elevated: #0e1813;
+	--color-surface-card: #09110d;
+	--color-overlay: #111c16;
+
+	--color-primary: #10b981;
+	--color-primary-glow: rgba(16, 185, 129, 0.18);
+	--color-primary-subtle: rgba(16, 185, 129, 0.08);
+	--color-secondary: #34d399;
+	--color-secondary-muted: rgba(16, 185, 129, 0.28);
+
+	--color-border-subtle: rgba(255, 255, 255, 0.08);
+	--color-border-hover: rgba(255, 255, 255, 0.16);
+	--color-border-highlight: rgba(255, 255, 255, 0.12);
+	--color-border-emerald: rgba(16, 185, 129, 0.32);
+	--color-border-emerald-glow: rgba(16, 185, 129, 0.65);
+
+	--color-hover-overlay: rgba(255, 255, 255, 0.05);
+	--color-active-overlay: rgba(16, 185, 129, 0.14);
+
+	--color-text-main: #f3f4f6;
+	--color-text-muted: #9ca3af;
+	--color-text-dim: #64748b;
+	--color-text-tech: #10b981;
+
+	--color-danger: #ef4444;
+	--color-danger-surface: rgba(239, 68, 68, 0.15);
+	--color-warning: #f59e0b;
+	--color-info: #38bdf8;
+
+	--color-cad-mark: rgba(16, 185, 129, 0.40);
+	--color-cad-muted: rgba(255, 255, 255, 0.15);
+
+	--radius-xs: 3px;
+	--radius-sm: 5px;
+	--radius-md: 6px;
+	--radius-lg: 8px;
+	--radius-xl: 10px;
+
+	--font-sans: 'Inter', 'DejaVu Sans', system-ui, -apple-system, sans-serif;
+	--font-mono: 'JetBrains Mono', 'MesloLGS Nerd Font', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+:root {
+	color-scheme: dark;
+	background-color: #010302;
+	color: #f3f4f6;
+	font-family: 'Inter', 'DejaVu Sans', system-ui, -apple-system, sans-serif;
+}
+
+body {
+	background-color: #010302;
+	color: #f3f4f6;
+	min-height: 100vh;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar técnica minimalista */
+::-webkit-scrollbar {
+	width: 5px;
+	height: 5px;
+}
+::-webkit-scrollbar-track {
+	background: #010302;
+}
+::-webkit-scrollbar-thumb {
+	background: #0e1813;
+	border: 1px solid rgba(255, 255, 255, 0.08);
+	border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+	background: rgba(16, 185, 129, 0.32);
+}
+
+/* Efecto de brillo OLED Esmeralda */
+.oled-glow {
+	box-shadow: 0 0 15px rgba(16, 185, 129, 0.18), inset 0 0 8px rgba(16, 185, 129, 0.08);
+}
+
+.oled-glow-lg {
+	box-shadow: 0 0 25px rgba(16, 185, 129, 0.25), 0 0 5px rgba(16, 185, 129, 0.50);
+}
+
+/* Marcadores CAD en esquinas de tarjetas técnicas */
+.cad-frame {
+	position: relative;
+}
+.cad-frame::before {
+	content: '';
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 6px;
+	height: 6px;
+	border-top: 1.5px solid rgba(16, 185, 129, 0.40);
+	border-left: 1.5px solid rgba(16, 185, 129, 0.40);
+	pointer-events: none;
+}
+.cad-frame::after {
+	content: '';
+	position: absolute;
+	bottom: 0;
+	right: 0;
+	width: 6px;
+	height: 6px;
+	border-bottom: 1.5px solid rgba(16, 185, 129, 0.40);
+	border-right: 1.5px solid rgba(16, 185, 129, 0.40);
+	pointer-events: none;
+}
