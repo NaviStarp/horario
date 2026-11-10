@@ -145,7 +145,7 @@
 			</div>
 			<div>
 				<h2 class="font-semibold text-sm sm:text-base text-[#f3f4f6]">
-					Diario del Día
+					Nota del Día
 				</h2>
 				<p class="text-xs text-[#64748b]">
 					Reflexiones y balance de tu jornada
