@@ -1,19 +1,14 @@
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-export function getSupabaseEnv() {
-	const url =
-		(typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_SUPABASE_URL) ||
-		(typeof process !== 'undefined' ? process.env?.PUBLIC_SUPABASE_URL : '') ||
-		'';
-	const anonKey =
-		(typeof import.meta !== 'undefined' && import.meta.env?.PUBLIC_SUPABASE_ANON_KEY) ||
-		(typeof process !== 'undefined' ? process.env?.PUBLIC_SUPABASE_ANON_KEY : '') ||
-		'';
+// En Vite y SvelteKit, import.meta.env.PUBLIC_* se reemplaza estáticamente si no se usa optional chaining
+const clientUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
+const clientAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
 
+export function getSupabaseEnv() {
 	return {
-		url: String(url).trim(),
-		anonKey: String(anonKey).trim()
+		url: String(clientUrl).trim(),
+		anonKey: String(clientAnonKey).trim()
 	};
 }
 

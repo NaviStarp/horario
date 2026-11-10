@@ -32,7 +32,6 @@ export type QuickNote = {
 export type CategoryMeta = {
 	id: string;
 	label: string;
-	code: string;
 	bgClass: string;
 	textClass: string;
 	borderClass: string;
@@ -43,7 +42,6 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 	rutina: {
 		id: 'rutina',
 		label: 'Rutina',
-		code: 'SYS.ROUTINE',
 		bgClass: 'bg-[#10b981]/10',
 		textClass: 'text-[#10b981]',
 		borderClass: 'border-[#10b981]/30',
@@ -52,7 +50,6 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 	estudio: {
 		id: 'estudio',
 		label: 'Estudio',
-		code: 'CORE.STUDY',
 		bgClass: 'bg-[#38bdf8]/10',
 		textClass: 'text-[#38bdf8]',
 		borderClass: 'border-[#38bdf8]/30',
@@ -61,7 +58,6 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 	trabajo: {
 		id: 'trabajo',
 		label: 'Trabajo',
-		code: 'OPS.WORK',
 		bgClass: 'bg-[#f59e0b]/10',
 		textClass: 'text-[#f59e0b]',
 		borderClass: 'border-[#f59e0b]/30',
@@ -69,8 +65,7 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 	},
 	entreno: {
 		id: 'entreno',
-		label: 'Entreno',
-		code: 'BIO.PHYS',
+		label: 'Entrenamiento',
 		bgClass: 'bg-[#ef4444]/10',
 		textClass: 'text-[#ef4444]',
 		borderClass: 'border-[#ef4444]/30',
@@ -79,7 +74,6 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 	ocio: {
 		id: 'ocio',
 		label: 'Ocio',
-		code: 'SYS.IDLE',
 		bgClass: 'bg-[#a78bfa]/10',
 		textClass: 'text-[#a78bfa]',
 		borderClass: 'border-[#a78bfa]/30',

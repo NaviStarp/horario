@@ -19,9 +19,7 @@
 		ChevronLeft,
 		ChevronRight,
 		Calendar as CalendarIcon,
-		RotateCcw,
-		Terminal,
-		Cpu
+		RotateCcw
 	} from 'lucide-svelte';
 
 	let { data }: PageProps = $props();
@@ -112,7 +110,7 @@
 						{
 							id: 'demo-note-2',
 							user_id: 'demo-user',
-							content: 'Revisar documentación técnica de SvelteKit y Svelte 5 runes',
+							content: 'Revisar documentación de SvelteKit y Svelte 5 runes',
 							is_pinned: false,
 							is_archived: false,
 							created_at: new Date().toISOString()
@@ -396,11 +394,11 @@
 
 <div class="space-y-6 pb-12">
 	<!-- ======================================================= -->
-	<!-- CABECERA TÉCNICA: FECHA & NAVEGADOR TELEMÉTRICO -->
+	<!-- CABECERA: SELECTOR DE FECHA Y NAVEGADOR -->
 	<!-- ======================================================= -->
 	<section class="cad-frame bg-[#070d0a] rounded-[10px] p-4 sm:p-5 border border-[rgba(255,255,255,0.08)] transition-all">
 		<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-			<!-- Fecha y Telemetría -->
+			<!-- Fecha y Estado -->
 			<div class="flex items-center gap-3">
 				<div class="relative">
 					<input
@@ -411,8 +409,8 @@
 					/>
 					<label
 						for="native-date-picker"
-						class="p-2 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981] hover:border-[#10b981] hover:shadow-[0_0_8px_rgba(16,185,129,0.2)] cursor-pointer flex items-center justify-center transition-all"
-						title="Seleccionar fecha arbitraria"
+						class="p-2.5 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981] hover:border-[#10b981] hover:shadow-[0_0_8px_rgba(16,185,129,0.2)] cursor-pointer flex items-center justify-center transition-all"
+						title="Seleccionar otra fecha"
 					>
 						<CalendarIcon class="w-4 h-4" />
 					</label>
@@ -420,57 +418,54 @@
 
 				<div>
 					<div class="flex items-center gap-2 flex-wrap">
-						<span class="font-mono text-xs font-bold text-[#10b981] tracking-wider">
-							[{viewingDate}]
-						</span>
-						<h1 class="font-mono text-base sm:text-lg font-bold text-[#f3f4f6]">
-							// {formatDisplayDate(viewingDate).toUpperCase()}
+						<h1 class="text-lg sm:text-xl font-bold text-[#f3f4f6] capitalize">
+							{formatDisplayDate(viewingDate)}
 						</h1>
 						{#if isToday(viewingDate)}
-							<span class="px-2 py-0.2 rounded-[3px] font-mono text-[10px] font-bold bg-[#10b981]/15 text-[#10b981] border border-[rgba(16,185,129,0.32)] shadow-[0_0_6px_rgba(16,185,129,0.2)]">
-								ACTIVE // TODAY
+							<span class="px-2 py-0.5 rounded-[4px] text-xs font-semibold bg-[#10b981]/15 text-[#10b981] border border-[rgba(16,185,129,0.32)] shadow-[0_0_6px_rgba(16,185,129,0.2)]">
+								Hoy
 							</span>
 						{/if}
 						{#if diaryMood}
-							<span class="text-sm" title="Mood tag">{diaryMood}</span>
+							<span class="text-sm" title="Estado de ánimo registrado">{diaryMood}</span>
 						{/if}
 					</div>
-					<p class="font-mono text-[11px] text-[#64748b] mt-0.5">
-						SYS_CYCLE: SCHEDULE_EXECUTION &amp; LOGGING
+					<p class="text-xs text-[#64748b] mt-0.5">
+						Planifica tu rutina, anota ideas y reflexiona al final del día
 					</p>
 				</div>
 			</div>
 
 			<!-- Botones de Navegación de Fecha -->
-			<div class="flex items-center gap-1.5 self-end sm:self-center font-mono text-xs">
+			<div class="flex items-center gap-1.5 self-end sm:self-center text-xs">
 				<button
 					type="button"
 					onclick={goToPreviousDay}
-					class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer"
+					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer font-medium"
 					title="Día anterior"
 				>
 					<ChevronLeft class="w-3.5 h-3.5 text-[#10b981]" />
-					<span class="hidden sm:inline">&lt; PREV</span>
+					<span>Ayer</span>
 				</button>
 
 				{#if !isToday(viewingDate)}
 					<button
 						type="button"
 						onclick={goToToday}
-						class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] font-bold bg-[#10b981] text-[#010302] hover:bg-[#34d399] transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer"
+						class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] font-semibold bg-[#10b981] text-[#010302] hover:bg-[#34d399] transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer"
 					>
 						<RotateCcw class="w-3 h-3 stroke-[3]" />
-						TODAY
+						Hoy
 					</button>
 				{/if}
 
 				<button
 					type="button"
 					onclick={goToNextDay}
-					class="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer"
+					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer font-medium"
 					title="Día siguiente"
 				>
-					<span class="hidden sm:inline">NEXT &gt;</span>
+					<span>Mañana</span>
 					<ChevronRight class="w-3.5 h-3.5 text-[#10b981]" />
 				</button>
 			</div>

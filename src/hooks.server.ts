@@ -11,8 +11,6 @@ export const handle: Handle = async ({ event, resolve }) => {
 		event.locals.session = null;
 		event.locals.user = null;
 		event.locals.safeGetSession = async () => ({ session: null, user: null });
-
-		// Si Supabase no está configurado aún, permitimos ver la interfaz y login con aviso de configuración
 		return resolve(event);
 	}
 
@@ -55,13 +53,14 @@ export const handle: Handle = async ({ event, resolve }) => {
 
 	const isLoginPage = event.url.pathname === '/login';
 	const isAuthCallback = event.url.pathname.startsWith('/auth');
+	const isDemoUser = event.cookies.get('demo_user') === 'true';
 
-	// Redirección de protección de rutas privadas (especificación sección 2)
-	if (!user && !isLoginPage && !isAuthCallback) {
+	// Si no hay usuario de Supabase y no está en modo demo, redirigir a /login
+	if (!user && !isDemoUser && !isLoginPage && !isAuthCallback) {
 		redirect(303, '/login');
 	}
 
-	// Si el usuario ya está autenticado e intenta ir a /login, redirigir al dashboard
+	// Si ya está autenticado e intenta ir a /login, redirigir al dashboard
 	if (user && isLoginPage) {
 		redirect(303, '/');
 	}
