@@ -3,7 +3,7 @@
 	import type { PageProps } from './$types';
 	import type { ScheduleBlock, DailyLog, QuickNote } from '#lib/types/database';
 	import { DEFAULT_SCHEDULE_BLOCKS } from '#lib/utils/defaultBlocks';
-	import { supabase, isSupabaseConfigured } from '#lib/supabaseClient';
+	import { supabase } from '#lib/supabaseClient';
 	import {
 		getTodayString,
 		formatDisplayDate,
@@ -19,15 +19,13 @@
 		ChevronLeft,
 		ChevronRight,
 		Calendar as CalendarIcon,
-		RotateCcw
+		RotateCcw,
+		Loader2
 	} from 'lucide-svelte';
 
 	let { data }: PageProps = $props();
 
-	// Fecha seleccionada
 	let viewingDate = $state(getTodayString());
-
-	// Estado principal
 	let blocks = $state<ScheduleBlock[]>([]);
 	let completedBlockIds = $state<string[]>([]);
 	let diaryContent = $state<string>('');
@@ -49,20 +47,15 @@
 			viewingDate = paramDate;
 		}
 
-		await loadInitialData();
+		await loadAllData(viewingDate);
 	});
 
-	$effect(() => {
-		if (viewingDate) {
-			loadDayLog(viewingDate);
-		}
-	});
-
-	async function loadInitialData() {
+	// Carga paralela de bloques, notas y registro diario del día seleccionado
+	async function loadAllData(targetDate: string) {
 		isLoading = true;
 		try {
 			if (isConfigured && user) {
-				const [blocksRes, notesRes] = await Promise.all([
+				const [blocksRes, notesRes, logRes] = await Promise.all([
 					supabase
 						.from('schedule_blocks')
 						.select('*')
@@ -71,16 +64,28 @@
 					supabase
 						.from('quick_notes')
 						.select('*')
-						.order('created_at', { ascending: false })
+						.order('created_at', { ascending: false }),
+					supabase
+						.from('daily_logs')
+						.select('*')
+						.eq('log_date', targetDate)
+						.maybeSingle()
 				]);
 
-				if (blocksRes.data) {
-					blocks = blocksRes.data as ScheduleBlock[];
-				}
-				if (notesRes.data) {
-					notes = notesRes.data as QuickNote[];
+				if (blocksRes.data) blocks = blocksRes.data as ScheduleBlock[];
+				if (notesRes.data) notes = notesRes.data as QuickNote[];
+
+				if (logRes.data) {
+					completedBlockIds = Array.isArray(logRes.data.completed_blocks) ? logRes.data.completed_blocks : [];
+					diaryContent = logRes.data.diary_content || '';
+					diaryMood = logRes.data.mood || null;
+				} else {
+					completedBlockIds = [];
+					diaryContent = '';
+					diaryMood = null;
 				}
 			} else {
+				// Almacenamiento local para modo demo
 				const savedBlocks = localStorage.getItem(LOCAL_BLOCKS_KEY);
 				if (savedBlocks) {
 					blocks = JSON.parse(savedBlocks);
@@ -110,7 +115,7 @@
 						{
 							id: 'demo-note-2',
 							user_id: 'demo-user',
-							content: 'Revisar documentación de SvelteKit y Svelte 5 runes',
+							content: 'Revisar documentación de SvelteKit',
 							is_pinned: false,
 							is_archived: false,
 							created_at: new Date().toISOString()
@@ -118,9 +123,19 @@
 					];
 					localStorage.setItem(LOCAL_NOTES_KEY, JSON.stringify(notes));
 				}
-			}
 
-			await loadDayLog(viewingDate);
+				const logsMap = JSON.parse(localStorage.getItem(LOCAL_LOGS_KEY) || '{}');
+				const log = logsMap[targetDate];
+				if (log) {
+					completedBlockIds = log.completed_blocks || [];
+					diaryContent = log.diary_content || '';
+					diaryMood = log.mood || null;
+				} else {
+					completedBlockIds = [];
+					diaryContent = '';
+					diaryMood = null;
+				}
+			}
 		} catch (err) {
 			console.error('Error al cargar datos:', err);
 		} finally {
@@ -128,13 +143,23 @@
 		}
 	}
 
-	async function loadDayLog(date: string) {
+	async function switchDate(newDate: string) {
+		viewingDate = newDate;
+		// Solo cargamos el log del nuevo día si los bloques y notas ya están en memoria
+		if (blocks.length > 0) {
+			await loadDayOnly(newDate);
+		} else {
+			await loadAllData(newDate);
+		}
+	}
+
+	async function loadDayOnly(targetDate: string) {
 		try {
 			if (isConfigured && user) {
-				const { data: log, error } = await supabase
+				const { data: log } = await supabase
 					.from('daily_logs')
 					.select('*')
-					.eq('log_date', date)
+					.eq('log_date', targetDate)
 					.maybeSingle();
 
 				if (log) {
@@ -148,7 +173,7 @@
 				}
 			} else {
 				const logsMap = JSON.parse(localStorage.getItem(LOCAL_LOGS_KEY) || '{}');
-				const log = logsMap[date];
+				const log = logsMap[targetDate];
 				if (log) {
 					completedBlockIds = log.completed_blocks || [];
 					diaryContent = log.diary_content || '';
@@ -160,13 +185,11 @@
 				}
 			}
 		} catch (err) {
-			console.error('Error al cargar registro diario:', err);
+			console.error('Error al cargar el día:', err);
 		}
 	}
 
-	// ==========================================================
-	// ACCIONES DEL HORARIO (SCHEDULE BLOCKS)
-	// ==========================================================
+	// Gestión de bloques del horario
 	async function handleToggleComplete(blockId: string) {
 		const isCurrentlyCompleted = completedBlockIds.includes(blockId);
 		let updated: string[];
@@ -283,9 +306,7 @@
 		}
 	}
 
-	// ==========================================================
-	// ACCIONES DE NOTAS RÁPIDAS (QUICK NOTES)
-	// ==========================================================
+	// Gestión de notas rápidas
 	async function handleAddNote(content: string) {
 		if (isConfigured && user) {
 			const { data: newNote, error } = await supabase
@@ -347,9 +368,7 @@
 		}
 	}
 
-	// ==========================================================
-	// ACCIONES DEL DIARIO (DIARY EDITOR)
-	// ==========================================================
+	// Gestión del diario
 	async function handleSaveDiary(content: string, mood: string | null) {
 		diaryContent = content;
 		diaryMood = mood;
@@ -378,32 +397,18 @@
 			localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(logsMap));
 		}
 	}
-
-	function goToPreviousDay() {
-		viewingDate = shiftDate(viewingDate, -1);
-	}
-
-	function goToNextDay() {
-		viewingDate = shiftDate(viewingDate, 1);
-	}
-
-	function goToToday() {
-		viewingDate = getTodayString();
-	}
 </script>
 
 <div class="space-y-6 pb-12">
-	<!-- ======================================================= -->
-	<!-- CABECERA: SELECTOR DE FECHA Y NAVEGADOR -->
-	<!-- ======================================================= -->
+	<!-- Selector de Fecha -->
 	<section class="cad-frame bg-[#070d0a] rounded-[10px] p-4 sm:p-5 border border-[rgba(255,255,255,0.08)] transition-all">
 		<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-			<!-- Fecha y Estado -->
 			<div class="flex items-center gap-3">
 				<div class="relative">
 					<input
 						type="date"
-						bind:value={viewingDate}
+						value={viewingDate}
+						onchange={(e) => switchDate((e.target as HTMLInputElement).value)}
 						class="sr-only"
 						id="native-date-picker"
 					/>
@@ -436,11 +441,11 @@
 				</div>
 			</div>
 
-			<!-- Botones de Navegación de Fecha -->
+			<!-- Botones de navegación -->
 			<div class="flex items-center gap-1.5 self-end sm:self-center text-xs">
 				<button
 					type="button"
-					onclick={goToPreviousDay}
+					onclick={() => switchDate(shiftDate(viewingDate, -1))}
 					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer font-medium"
 					title="Día anterior"
 				>
@@ -451,7 +456,7 @@
 				{#if !isToday(viewingDate)}
 					<button
 						type="button"
-						onclick={goToToday}
+						onclick={() => switchDate(getTodayString())}
 						class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] font-semibold bg-[#10b981] text-[#010302] hover:bg-[#34d399] transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer"
 					>
 						<RotateCcw class="w-3 h-3 stroke-[3]" />
@@ -461,7 +466,7 @@
 
 				<button
 					type="button"
-					onclick={goToNextDay}
+					onclick={() => switchDate(shiftDate(viewingDate, 1))}
 					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer font-medium"
 					title="Día siguiente"
 				>
@@ -472,39 +477,84 @@
 		</div>
 	</section>
 
-	<!-- ======================================================= -->
-	<!-- DASHBOARD EN 2 COLUMNAS (ESCRITORIO) / 1 COLUMNA (MÓVIL)-->
-	<!-- ======================================================= -->
-	<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-		<!-- COLUMNA IZQUIERDA: BLOQUE 1 - HORARIO DEL DÍA -->
-		<div class="lg:col-span-7 space-y-6">
-			<ScheduleList
-				{blocks}
-				{completedBlockIds}
-				{viewingDate}
-				onToggleComplete={handleToggleComplete}
-				onSaveBlock={handleSaveBlock}
-				onDeleteBlock={handleDeleteBlock}
-				onLoadTemplate={handleLoadTemplate}
-			/>
-		</div>
+	<!-- Vista Principal o Animación de Carga -->
+	{#if isLoading}
+		<!-- Animación de carga y skeleton pulido -->
+		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-pulse">
+			<div class="lg:col-span-7 bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
+				<div class="flex items-center justify-between pb-3 border-b border-[rgba(255,255,255,0.08)]">
+					<div class="flex items-center gap-2.5">
+						<div class="w-8 h-8 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.2)] flex items-center justify-center">
+							<Loader2 class="w-4 h-4 text-[#10b981] animate-spin" />
+						</div>
+						<div>
+							<div class="h-4 w-32 bg-[#0e1813] rounded"></div>
+							<div class="h-3 w-20 bg-[#0a120e] rounded mt-1.5"></div>
+						</div>
+					</div>
+					<div class="h-6 w-24 bg-[#0a120e] rounded"></div>
+				</div>
 
-		<!-- COLUMNA DERECHA: BLOQUE 2 - NOTAS RÁPIDAS + BLOQUE 3 - DIARIO -->
-		<div class="lg:col-span-5 space-y-6">
-			<QuickNotes
-				{notes}
-				onAddNote={handleAddNote}
-				onTogglePin={handleTogglePin}
-				onToggleArchive={handleToggleArchive}
-				onDeleteNote={handleDeleteNote}
-			/>
+				<div class="h-2 w-full bg-[#0a120e] rounded-full overflow-hidden">
+					<div class="h-full w-1/3 bg-[#10b981]/40 rounded-full animate-pulse"></div>
+				</div>
 
-			<DiaryEditor
-				{diaryContent}
-				mood={diaryMood}
-				{viewingDate}
-				onSaveDiary={handleSaveDiary}
-			/>
+				<div class="space-y-2.5 pt-2">
+					{#each [1, 2, 3, 4] as _}
+						<div class="p-3.5 rounded-[8px] bg-[#09110d] border border-[rgba(255,255,255,0.05)] flex items-center gap-3">
+							<div class="w-5 h-5 rounded bg-[#0a120e] border border-[rgba(255,255,255,0.08)]"></div>
+							<div class="flex-1 space-y-2">
+								<div class="h-3 w-28 bg-[#0e1813] rounded"></div>
+								<div class="h-4 w-48 bg-[#0a120e] rounded"></div>
+							</div>
+						</div>
+					{/each}
+				</div>
+			</div>
+
+			<div class="lg:col-span-5 space-y-6">
+				<div class="bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
+					<div class="h-4 w-28 bg-[#0e1813] rounded"></div>
+					<div class="h-9 w-full bg-[#0a120e] rounded-[6px]"></div>
+					<div class="h-16 w-full bg-[#09110d] rounded-[6px]"></div>
+				</div>
+
+				<div class="bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
+					<div class="h-4 w-32 bg-[#0e1813] rounded"></div>
+					<div class="h-40 w-full bg-[#0a120e] rounded-[6px]"></div>
+				</div>
+			</div>
 		</div>
-	</div>
+	{:else}
+		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+			<div class="lg:col-span-7 space-y-6">
+				<ScheduleList
+					{blocks}
+					{completedBlockIds}
+					{viewingDate}
+					onToggleComplete={handleToggleComplete}
+					onSaveBlock={handleSaveBlock}
+					onDeleteBlock={handleDeleteBlock}
+					onLoadTemplate={handleLoadTemplate}
+				/>
+			</div>
+
+			<div class="lg:col-span-5 space-y-6">
+				<QuickNotes
+					{notes}
+					onAddNote={handleAddNote}
+					onTogglePin={handleTogglePin}
+					onToggleArchive={handleToggleArchive}
+					onDeleteNote={handleDeleteNote}
+				/>
+
+				<DiaryEditor
+					{diaryContent}
+					mood={diaryMood}
+					{viewingDate}
+					onSaveDiary={handleSaveDiary}
+				/>
+			</div>
+		</div>
+	{/if}
 </div>

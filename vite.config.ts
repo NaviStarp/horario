@@ -9,6 +9,14 @@ export default defineConfig(({ mode }) => {
 	const supabaseAnonKey = env.PUBLIC_SUPABASE_ANON_KEY || process.env.PUBLIC_SUPABASE_ANON_KEY || '';
 
 	return {
+		server: {
+			host: '0.0.0.0',
+			port: 5173
+		},
+		preview: {
+			host: '0.0.0.0',
+			port: 5173
+		},
 		define: {
 			'import.meta.env.PUBLIC_SUPABASE_URL': JSON.stringify(supabaseUrl),
 			'import.meta.env.PUBLIC_SUPABASE_ANON_KEY': JSON.stringify(supabaseAnonKey),

@@ -1,7 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
-// En Vite y SvelteKit, import.meta.env.PUBLIC_* se reemplaza estáticamente si no se usa optional chaining
 const clientUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
 const clientAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || '';
 

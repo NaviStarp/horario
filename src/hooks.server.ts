@@ -4,9 +4,19 @@ import type { Handle } from '@sveltejs/kit/hooks';
 import { getSupabaseEnv, isSupabaseConfigured } from '#lib/supabaseClient';
 
 export const handle: Handle = async ({ event, resolve }) => {
-	const configured = isSupabaseConfigured();
+	const pathname = event.url.pathname;
+	if (
+		pathname.startsWith('/_app/') ||
+		pathname.startsWith('/icons/') ||
+		pathname === '/manifest.webmanifest' ||
+		pathname === '/service-worker.js' ||
+		pathname === '/favicon.svg' ||
+		pathname === '/robots.txt'
+	) {
+		return resolve(event);
+	}
 
-	if (!configured) {
+	if (!isSupabaseConfigured()) {
 		event.locals.supabase = null;
 		event.locals.session = null;
 		event.locals.user = null;
@@ -15,6 +25,10 @@ export const handle: Handle = async ({ event, resolve }) => {
 	}
 
 	const { url, anonKey } = getSupabaseEnv();
+	const allCookies = event.cookies.getAll();
+	const hasAuthCookie = allCookies.some(
+		(c) => c.name.startsWith('sb-') || c.name.includes('-auth-token')
+	);
 
 	event.locals.supabase = createServerClient(url, anonKey, {
 		cookies: {
@@ -28,7 +42,7 @@ export const handle: Handle = async ({ event, resolve }) => {
 	});
 
 	event.locals.safeGetSession = async () => {
-		if (!event.locals.supabase) {
+		if (!event.locals.supabase || !hasAuthCookie) {
 			return { session: null, user: null };
 		}
 		const {
@@ -55,12 +69,12 @@ export const handle: Handle = async ({ event, resolve }) => {
 	const isAuthCallback = event.url.pathname.startsWith('/auth');
 	const isDemoUser = event.cookies.get('demo_user') === 'true';
 
-	// Si no hay usuario de Supabase y no está en modo demo, redirigir a /login
+	// Redirección si no hay sesión
 	if (!user && !isDemoUser && !isLoginPage && !isAuthCallback) {
 		redirect(303, '/login');
 	}
 
-	// Si ya está autenticado e intenta ir a /login, redirigir al dashboard
+	// Redirección si ya está autenticado
 	if (user && isLoginPage) {
 		redirect(303, '/');
 	}
