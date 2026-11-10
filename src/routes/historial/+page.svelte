@@ -5,6 +5,7 @@
 	import { supabase, isSupabaseConfigured } from '#lib/supabaseClient';
 	import { getTodayString } from '#lib/utils/timeHelpers';
 	import { resolve } from '$app/paths';
+	import { auth } from '#lib/auth.svelte';
 	import {
 		ChevronLeft,
 		ChevronRight,
@@ -30,10 +31,12 @@
 	const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 	let isConfigured = $derived(data.isConfigured);
-	let user = $derived(data.user);
+	let user = $derived(auth.user);
 
-	onMount(async () => {
-		await loadMonthData();
+	$effect(() => {
+		if (auth.loading) return;
+		void user;
+		loadMonthData();
 	});
 
 	async function loadMonthData() {

@@ -3,8 +3,10 @@
 	import favicon from '#lib/assets/favicon.svg';
 	import type { LayoutProps } from './$types';
 	import { supabase, isSupabaseConfigured } from '#lib/supabaseClient';
-	import { navigating } from '$app/state';
+	import { auth } from '#lib/auth.svelte';
+	import { navigating, page } from '$app/state';
 	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import {
 		Calendar,
@@ -19,42 +21,25 @@
 	let { data, children }: LayoutProps = $props();
 
 	let deferredInstallPrompt = $state<any>(null);
-	let clientUser = $state<any>(null);
-	let currentUser = $derived(data.user || clientUser);
+	let currentUser = $derived(auth.user);
+
+	$effect(() => {
+		if (auth.loading) return;
+
+		const pathname = page.url.pathname;
+		const isLoginPage = pathname.endsWith('/login') || pathname.endsWith('/login/');
+
+		if (!auth.user && !auth.isDemo && !isLoginPage) {
+			goto(resolve('/login'), { replaceState: true });
+		} else if ((auth.user || auth.isDemo) && isLoginPage) {
+			goto(resolve('/'), { replaceState: true });
+		}
+	});
 
 	onMount(() => {
 		if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
 			const swPath = resolve('/').replace(/\/$/, '') + '/service-worker.js';
 			navigator.serviceWorker.register(swPath).catch(() => {});
-		}
-
-		// En modo estático (GitHub Pages), verificar sesión en el cliente
-		if (isSupabaseConfigured()) {
-			supabase.auth.getSession().then(({ data: { session } }) => {
-				clientUser = session?.user ?? null;
-				const isLoginPage = window.location.pathname.endsWith('/login') || window.location.pathname.endsWith('/login/');
-				const isDemoUser = document.cookie.includes('demo_user=true');
-
-				if (!session && !isDemoUser && !isLoginPage) {
-					window.location.href = resolve('/login');
-					return;
-				}
-				if (session && isLoginPage) {
-					window.location.href = resolve('/');
-				}
-			});
-
-			const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
-				clientUser = session?.user ?? null;
-				const isLoginPage = window.location.pathname.endsWith('/login') || window.location.pathname.endsWith('/login/');
-				const isDemoUser = document.cookie.includes('demo_user=true');
-
-				if (!session && !isDemoUser && !isLoginPage) {
-					window.location.href = resolve('/login');
-				}
-			});
-
-			onDestroyCleanup = () => authListener.subscription.unsubscribe();
 		}
 
 		const handlePrompt = (e: Event) => {
@@ -65,11 +50,8 @@
 		window.addEventListener('beforeinstallprompt', handlePrompt);
 		return () => {
 			window.removeEventListener('beforeinstallprompt', handlePrompt);
-			if (onDestroyCleanup) onDestroyCleanup();
 		};
 	});
-
-	let onDestroyCleanup: (() => void) | null = null;
 
 	async function promptInstall() {
 		if (!deferredInstallPrompt) return;
@@ -88,8 +70,14 @@
 		} catch (e) {
 			console.error(e);
 		} finally {
+			auth.user = null;
+			auth.session = null;
+			auth.isDemo = false;
+			if (typeof localStorage !== 'undefined') {
+				localStorage.removeItem('demo_user');
+			}
 			document.cookie = 'demo_user=; path=/; max-age=0';
-			window.location.href = resolve('/login');
+			goto(resolve('/login'));
 		}
 	}
 </script>
@@ -127,7 +115,7 @@
 					</div>
 				</a>
 
-				{#if currentUser || !data.isConfigured}
+				{#if currentUser || auth.isDemo || !data.isConfigured}
 					<nav class="hidden sm:flex items-center gap-1 text-xs">
 						<a
 							href={resolve('/')}
@@ -182,6 +170,19 @@
 							<LogOut class="w-4 h-4" />
 						</button>
 					</div>
+				{:else if auth.isDemo}
+					<div class="flex items-center gap-2 pl-3 border-l border-[rgba(255,255,255,0.08)]">
+						<span class="hidden md:inline px-2 py-0.5 rounded-[4px] bg-[#f59e0b]/10 border border-[#f59e0b]/30 text-[#f59e0b] text-[11px] font-medium">Modo Demo</span>
+						<button
+							type="button"
+							onclick={handleLogout}
+							class="p-2 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#ef4444] hover:border-[#ef4444]/40 hover:bg-[#ef4444]/10 transition-all cursor-pointer"
+							title="Salir del modo demo"
+							aria-label="Salir del modo demo"
+						>
+							<LogOut class="w-4 h-4" />
+						</button>
+					</div>
 				{/if}
 			</div>
 		</div>
@@ -189,7 +190,14 @@
 
 	<!-- Contenido -->
 	<main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6">
-		{@render children()}
+		{#if auth.loading}
+			<div class="min-h-[50vh] flex flex-col items-center justify-center text-[#64748b] gap-3">
+				<div class="w-8 h-8 rounded-full border-2 border-[rgba(16,185,129,0.2)] border-t-[#10b981] animate-spin"></div>
+				<p class="text-xs">Cargando...</p>
+			</div>
+		{:else}
+			{@render children()}
+		{/if}
 	</main>
 
 	<!-- Pie de página -->

@@ -1,4 +1,4 @@
-import { createBrowserClient } from '@supabase/ssr';
+import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
 const clientUrl = import.meta.env.PUBLIC_SUPABASE_URL || '';
@@ -22,17 +22,24 @@ export function isSupabaseConfigured(): boolean {
 	);
 }
 
-let browserClient: SupabaseClient | null = null;
+let client: SupabaseClient | null = null;
 
-export function getSupabaseBrowserClient(): SupabaseClient {
-	if (!browserClient) {
+export function getSupabaseClient(): SupabaseClient {
+	if (!client) {
 		const { url, anonKey } = getSupabaseEnv();
 		const effectiveUrl = isSupabaseConfigured() ? url : 'https://placeholder.supabase.co';
 		const effectiveKey = isSupabaseConfigured() ? anonKey : 'placeholder-anon-key';
 
-		browserClient = createBrowserClient(effectiveUrl, effectiveKey);
+		client = createClient(effectiveUrl, effectiveKey, {
+			auth: {
+				persistSession: true,
+				autoRefreshToken: true,
+				detectSessionInUrl: true,
+				storage: typeof window !== 'undefined' ? window.localStorage : undefined
+			}
+		});
 	}
-	return browserClient;
+	return client;
 }
 
-export const supabase = getSupabaseBrowserClient();
+export const supabase = getSupabaseClient();

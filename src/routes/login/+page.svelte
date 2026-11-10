@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { supabase, isSupabaseConfigured } from '#lib/supabaseClient';
 	import { resolve } from '$app/paths';
+	import { goto } from '$app/navigation';
+	import { auth } from '#lib/auth.svelte';
 	import { Lock, Mail, Key, AlertCircle, ArrowRight, ShieldCheck, Terminal } from 'lucide-svelte';
 
 	let email = $state('');
@@ -21,8 +23,11 @@
 
 		try {
 			if (!configured) {
+				localStorage.setItem('demo_user', 'true');
 				document.cookie = 'demo_user=true; path=/; max-age=86400';
-				window.location.href = resolve('/');
+				auth.isDemo = true;
+				auth.loading = false;
+				goto(resolve('/'));
 				return;
 			}
 
@@ -39,7 +44,10 @@
 			}
 
 			if (data?.session) {
-				window.location.href = resolve('/');
+				auth.session = data.session;
+				auth.user = data.session.user;
+				auth.loading = false;
+				goto(resolve('/'));
 			}
 		} catch (err: any) {
 			errorMessage = err?.message || 'Error al conectar con el servidor de autenticación.';
@@ -49,8 +57,11 @@
 	}
 
 	function handleDemoAccess() {
+		localStorage.setItem('demo_user', 'true');
 		document.cookie = 'demo_user=true; path=/; max-age=86400';
-		window.location.href = resolve('/');
+		auth.isDemo = true;
+		auth.loading = false;
+		goto(resolve('/'));
 	}
 </script>
 

@@ -38,7 +38,8 @@ export default defineConfig(({ mode }) => {
 					strict: true
 				}),
 				paths: {
-					base: (mode === 'production' ? (process.env.BASE_PATH ?? '/horario') : '') as '' | `/${string}`
+					base: (mode === 'production' ? (process.env.BASE_PATH ?? '/horario') : '') as '' | `/${string}`,
+					relative: false
 				}
 			})
 		]

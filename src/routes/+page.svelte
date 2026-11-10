@@ -14,6 +14,8 @@
 	import ScheduleList from '#lib/components/ScheduleList.svelte';
 	import QuickNotes from '#lib/components/QuickNotes.svelte';
 	import DiaryEditor from '#lib/components/DiaryEditor.svelte';
+	import { auth } from '#lib/auth.svelte';
+	import { page } from '$app/state';
 
 	import {
 		ChevronLeft,
@@ -34,20 +36,23 @@
 	let isLoading = $state(true);
 
 	let isConfigured = $derived(data.isConfigured);
-	let user = $derived(data.user);
+	let user = $derived(auth.user);
 
 	const LOCAL_BLOCKS_KEY = 'demo_horario_blocks';
 	const LOCAL_LOGS_KEY = 'demo_horario_daily_logs';
 	const LOCAL_NOTES_KEY = 'demo_horario_quick_notes';
 
-	onMount(async () => {
-		const urlParams = new URLSearchParams(window.location.search);
-		const paramDate = urlParams.get('date');
-		if (paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate)) {
+	$effect(() => {
+		const paramDate = page.url.searchParams.get('date');
+		if (paramDate && /^\d{4}-\d{2}-\d{2}$/.test(paramDate) && paramDate !== viewingDate) {
 			viewingDate = paramDate;
 		}
+	});
 
-		await loadAllData(viewingDate);
+	$effect(() => {
+		if (auth.loading) return;
+		void user;
+		loadAllData(viewingDate);
 	});
 
 	// Carga paralela de bloques, notas y registro diario del día seleccionado
@@ -275,11 +280,10 @@
 	async function handleDeleteBlock(blockId: string) {
 		if (isConfigured && user) {
 			await supabase.from('schedule_blocks').delete().eq('id', blockId);
+		} else {
+			localStorage.setItem(LOCAL_BLOCKS_KEY, JSON.stringify(blocks.filter((b) => b.id !== blockId)));
 		}
 		blocks = blocks.filter((b) => b.id !== blockId);
-		if (!isConfigured) {
-			localStorage.setItem(LOCAL_BLOCKS_KEY, JSON.stringify(blocks));
-		}
 	}
 
 	async function handleLoadTemplate() {
