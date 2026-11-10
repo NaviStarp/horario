@@ -1,9 +1,14 @@
 import { createServerClient } from '@supabase/ssr';
 import { redirect } from '@sveltejs/kit';
+import { building } from '$app/env';
 import type { Handle } from '@sveltejs/kit/hooks';
 import { getSupabaseEnv, isSupabaseConfigured } from '#lib/supabaseClient';
 
 export const handle: Handle = async ({ event, resolve }) => {
+	if (building) {
+		return resolve(event);
+	}
+
 	const pathname = event.url.pathname;
 	if (
 		pathname.startsWith('/_app/') ||

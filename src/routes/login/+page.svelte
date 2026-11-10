@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { supabase, isSupabaseConfigured } from '#lib/supabaseClient';
+	import { resolve } from '$app/paths';
 	import { Lock, Mail, Key, AlertCircle, ArrowRight, ShieldCheck, Terminal } from 'lucide-svelte';
 
 	let email = $state('');
@@ -21,7 +22,7 @@
 		try {
 			if (!configured) {
 				document.cookie = 'demo_user=true; path=/; max-age=86400';
-				window.location.href = '/';
+				window.location.href = resolve('/');
 				return;
 			}
 
@@ -38,7 +39,7 @@
 			}
 
 			if (data?.session) {
-				window.location.href = '/';
+				window.location.href = resolve('/');
 			}
 		} catch (err: any) {
 			errorMessage = err?.message || 'Error al conectar con el servidor de autenticación.';
@@ -49,7 +50,7 @@
 
 	function handleDemoAccess() {
 		document.cookie = 'demo_user=true; path=/; max-age=86400';
-		window.location.href = '/';
+		window.location.href = resolve('/');
 	}
 </script>
 

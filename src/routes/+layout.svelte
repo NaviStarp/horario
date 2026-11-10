@@ -4,6 +4,7 @@
 	import type { LayoutProps } from './$types';
 	import { supabase, isSupabaseConfigured } from '#lib/supabaseClient';
 	import { navigating } from '$app/state';
+	import { resolve } from '$app/paths';
 	import { onMount } from 'svelte';
 	import {
 		Calendar,
@@ -18,10 +19,42 @@
 	let { data, children }: LayoutProps = $props();
 
 	let deferredInstallPrompt = $state<any>(null);
+	let clientUser = $state<any>(null);
+	let currentUser = $derived(data.user || clientUser);
 
 	onMount(() => {
 		if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-			navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+			const swPath = resolve('/').replace(/\/$/, '') + '/service-worker.js';
+			navigator.serviceWorker.register(swPath).catch(() => {});
+		}
+
+		// En modo estático (GitHub Pages), verificar sesión en el cliente
+		if (isSupabaseConfigured()) {
+			supabase.auth.getSession().then(({ data: { session } }) => {
+				clientUser = session?.user ?? null;
+				const isLoginPage = window.location.pathname.endsWith('/login') || window.location.pathname.endsWith('/login/');
+				const isDemoUser = document.cookie.includes('demo_user=true');
+
+				if (!session && !isDemoUser && !isLoginPage) {
+					window.location.href = resolve('/login');
+					return;
+				}
+				if (session && isLoginPage) {
+					window.location.href = resolve('/');
+				}
+			});
+
+			const { data: authListener } = supabase.auth.onAuthStateChange((_event, session) => {
+				clientUser = session?.user ?? null;
+				const isLoginPage = window.location.pathname.endsWith('/login') || window.location.pathname.endsWith('/login/');
+				const isDemoUser = document.cookie.includes('demo_user=true');
+
+				if (!session && !isDemoUser && !isLoginPage) {
+					window.location.href = resolve('/login');
+				}
+			});
+
+			onDestroyCleanup = () => authListener.subscription.unsubscribe();
 		}
 
 		const handlePrompt = (e: Event) => {
@@ -32,8 +65,11 @@
 		window.addEventListener('beforeinstallprompt', handlePrompt);
 		return () => {
 			window.removeEventListener('beforeinstallprompt', handlePrompt);
+			if (onDestroyCleanup) onDestroyCleanup();
 		};
 	});
+
+	let onDestroyCleanup: (() => void) | null = null;
 
 	async function promptInstall() {
 		if (!deferredInstallPrompt) return;
@@ -53,7 +89,7 @@
 			console.error(e);
 		} finally {
 			document.cookie = 'demo_user=; path=/; max-age=0';
-			window.location.href = '/login';
+			window.location.href = resolve('/login');
 		}
 	}
 </script>
@@ -74,7 +110,7 @@
 	<header class="sticky top-0 z-40 w-full backdrop-blur-md bg-[#070d0a]/90 border-b border-[rgba(255,255,255,0.08)] px-4 sm:px-6 py-3 transition-colors">
 		<div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
 			<div class="flex items-center gap-6">
-				<a href="/" class="flex items-center gap-2.5 group">
+				<a href={resolve('/')} class="flex items-center gap-2.5 group">
 					<div class="w-8 h-8 rounded-[8px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981] flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.18)] group-hover:border-[#10b981] transition-all">
 						<Clock class="w-4 h-4 stroke-[2.2]" />
 					</div>
@@ -91,17 +127,17 @@
 					</div>
 				</a>
 
-				{#if data.user || !data.isConfigured}
+				{#if currentUser || !data.isConfigured}
 					<nav class="hidden sm:flex items-center gap-1 text-xs">
 						<a
-							href="/"
+							href={resolve('/')}
 							class="px-3 py-1.5 rounded-[6px] border border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)] transition-all flex items-center gap-1.5 font-medium"
 						>
 							<Calendar class="w-3.5 h-3.5 text-[#10b981]" />
 							<span>Dashboard</span>
 						</a>
 						<a
-							href="/historial"
+							href={resolve('/historial')}
 							class="px-3 py-1.5 rounded-[6px] border border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)] transition-all flex items-center gap-1.5 font-medium"
 						>
 							<History class="w-3.5 h-3.5 text-[#34d399]" />
@@ -129,11 +165,11 @@
 					<span>Privacidad RLS</span>
 				</div>
 
-				{#if data.user}
+				{#if currentUser}
 					<div class="flex items-center gap-2 pl-3 border-l border-[rgba(255,255,255,0.08)]">
 						<div class="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-xs text-[#9ca3af]">
 							<UserIcon class="w-3.5 h-3.5 text-[#10b981]" />
-							<span class="max-w-[150px] truncate">{data.user.email}</span>
+							<span class="max-w-[150px] truncate">{currentUser.email}</span>
 						</div>
 
 						<button

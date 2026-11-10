@@ -4,6 +4,7 @@
 	import type { DailyLog, ScheduleBlock } from '#lib/types/database';
 	import { supabase, isSupabaseConfigured } from '#lib/supabaseClient';
 	import { getTodayString } from '#lib/utils/timeHelpers';
+	import { resolve } from '$app/paths';
 	import {
 		ChevronLeft,
 		ChevronRight,
@@ -235,7 +236,7 @@
 				{@const mood = cell.log?.mood}
 
 				<a
-					href="/?date={cell.dateStr}"
+					href="{resolve('/')}?date={cell.dateStr}"
 					class="group min-h-[90px] sm:min-h-[105px] p-2 flex flex-col justify-between transition-all cursor-pointer
 						{cell.isCurrentMonth ? 'bg-[#070d0a] hover:bg-[#0e1813]' : 'bg-[#020503] opacity-35 hover:opacity-80'}
 						{cell.isToday ? 'ring-1 ring-[#10b981] ring-inset bg-[#0e1813] oled-glow' : ''}"
