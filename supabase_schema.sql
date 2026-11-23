@@ -72,12 +72,30 @@ create table if not exists public.quick_notes (
 create index if not exists idx_quick_notes_user on public.quick_notes(user_id, is_archived, is_pinned, created_at desc);
 
 -- ============================================================
+-- TABLA 4: calendar_events (Eventos, tareas, exámenes y recordatorios)
+-- ============================================================
+create table if not exists public.calendar_events (
+    id uuid primary key default gen_random_uuid(),
+    user_id uuid not null references auth.users(id) on delete cascade default auth.uid(),
+    title text not null,
+    event_date date not null,
+    event_time time null,
+    category text not null default 'evento', -- 'examen', 'tarea', 'recordatorio', 'evento'
+    description text null default '',
+    is_completed boolean not null default false,
+    created_at timestamp with time zone default timezone('utc'::text, now()) not null
+);
+
+create index if not exists idx_calendar_events_user_date on public.calendar_events(user_id, event_date);
+
+-- ============================================================
 -- ROW LEVEL SECURITY (RLS) - PRIVACIDAD ABSOLUTA
 -- ============================================================
 -- Activamos RLS en todas las tablas
 alter table public.schedule_blocks enable row level security;
 alter table public.daily_logs enable row level security;
 alter table public.quick_notes enable row level security;
+alter table public.calendar_events enable row level security;
 
 -- Políticas estrictas: auth.uid() = user_id
 -- 1. schedule_blocks
@@ -129,6 +147,23 @@ create policy "quick_notes_update_policy" on public.quick_notes
 
 drop policy if exists "quick_notes_delete_policy" on public.quick_notes;
 create policy "quick_notes_delete_policy" on public.quick_notes
+    for delete using (auth.uid() = user_id);
+
+-- 4. calendar_events
+drop policy if exists "calendar_events_select_policy" on public.calendar_events;
+create policy "calendar_events_select_policy" on public.calendar_events
+    for select using (auth.uid() = user_id);
+
+drop policy if exists "calendar_events_insert_policy" on public.calendar_events;
+create policy "calendar_events_insert_policy" on public.calendar_events
+    for insert with check (auth.uid() = user_id);
+
+drop policy if exists "calendar_events_update_policy" on public.calendar_events;
+create policy "calendar_events_update_policy" on public.calendar_events
+    for update using (auth.uid() = user_id);
+
+drop policy if exists "calendar_events_delete_policy" on public.calendar_events;
+create policy "calendar_events_delete_policy" on public.calendar_events
     for delete using (auth.uid() = user_id);
 
 -- ============================================================

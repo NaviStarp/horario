@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import type { PageProps } from './$types';
-	import type { ScheduleBlock, DailyLog, QuickNote } from '#lib/types/database';
+	import type { ScheduleBlock, DailyLog, QuickNote, CalendarEvent } from '#lib/types/database';
 	import { DEFAULT_SCHEDULE_BLOCKS } from '#lib/utils/defaultBlocks';
 	import { supabase } from '#lib/supabaseClient';
 	import {
@@ -14,6 +14,8 @@
 	import ScheduleList from '#lib/components/ScheduleList.svelte';
 	import QuickNotes from '#lib/components/QuickNotes.svelte';
 	import DiaryEditor from '#lib/components/DiaryEditor.svelte';
+	import DayEventsCard from '#lib/components/DayEventsCard.svelte';
+	import CalendarEventModal from '#lib/components/CalendarEventModal.svelte';
 	import { auth } from '#lib/auth.svelte';
 	import { page } from '$app/state';
 
@@ -33,6 +35,9 @@
 	let diaryContent = $state<string>('');
 	let diaryMood = $state<string | null>(null);
 	let notes = $state<QuickNote[]>([]);
+	let events = $state<CalendarEvent[]>([]);
+	let showEventModal = $state(false);
+	let editingEvent = $state<CalendarEvent | null>(null);
 	let isLoading = $state(true);
 
 	let isConfigured = $derived(data.isConfigured);
@@ -41,6 +46,7 @@
 	const LOCAL_BLOCKS_KEY = 'demo_horario_blocks';
 	const LOCAL_LOGS_KEY = 'demo_horario_daily_logs';
 	const LOCAL_NOTES_KEY = 'demo_horario_quick_notes';
+	const LOCAL_EVENTS_KEY = 'demo_horario_calendar_events';
 
 	$effect(() => {
 		const paramDate = page.url.searchParams.get('date');
@@ -60,7 +66,7 @@
 		isLoading = true;
 		try {
 			if (isConfigured && user) {
-				const [blocksRes, notesRes, logRes] = await Promise.all([
+				const [blocksRes, notesRes, logRes, eventsRes] = await Promise.all([
 					supabase
 						.from('schedule_blocks')
 						.select('*')
@@ -74,11 +80,24 @@
 						.from('daily_logs')
 						.select('*')
 						.eq('log_date', targetDate)
-						.maybeSingle()
+						.maybeSingle(),
+					supabase
+						.from('calendar_events')
+						.select('*')
+						.order('event_date', { ascending: true })
+						.order('event_time', { ascending: true })
 				]);
 
 				if (blocksRes.data) blocks = blocksRes.data as ScheduleBlock[];
 				if (notesRes.data) notes = notesRes.data as QuickNote[];
+
+				if (eventsRes.data) {
+					events = eventsRes.data as CalendarEvent[];
+				} else {
+					// Fallback a localStorage si la tabla no está creada aún en Supabase
+					const savedEvents = localStorage.getItem(LOCAL_EVENTS_KEY);
+					events = savedEvents ? JSON.parse(savedEvents) : [];
+				}
 
 				if (logRes.data) {
 					completedBlockIds = Array.isArray(logRes.data.completed_blocks) ? logRes.data.completed_blocks : [];
@@ -102,6 +121,37 @@
 					}));
 					blocks = initial as ScheduleBlock[];
 					localStorage.setItem(LOCAL_BLOCKS_KEY, JSON.stringify(blocks));
+				}
+
+				const savedEvents = localStorage.getItem(LOCAL_EVENTS_KEY);
+				if (savedEvents) {
+					events = JSON.parse(savedEvents);
+				} else {
+					events = [
+						{
+							id: 'demo-event-1',
+							user_id: 'demo-user',
+							title: 'Examen de Sistemas Distribuidos',
+							category: 'examen',
+							event_date: targetDate,
+							event_time: '10:00',
+							description: 'Temas 1 al 4: microservicios, consistencia y tolerancia a fallos.',
+							is_completed: false,
+							created_at: new Date().toISOString()
+						},
+						{
+							id: 'demo-event-2',
+							user_id: 'demo-user',
+							title: 'Entrega de práctica evaluable',
+							category: 'tarea',
+							event_date: targetDate,
+							event_time: '23:59',
+							description: 'Subir memoria y enlace al repositorio de GitHub.',
+							is_completed: false,
+							created_at: new Date().toISOString()
+						}
+					];
+					localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(events));
 				}
 
 				const savedNotes = localStorage.getItem(LOCAL_NOTES_KEY);
@@ -401,6 +451,117 @@
 			localStorage.setItem(LOCAL_LOGS_KEY, JSON.stringify(logsMap));
 		}
 	}
+
+	// Gestión de eventos, exámenes y recordatorios
+	function handleOpenAddEventModal() {
+		editingEvent = null;
+		showEventModal = true;
+	}
+
+	function handleEditEvent(ev: CalendarEvent) {
+		editingEvent = ev;
+		showEventModal = true;
+	}
+
+	async function handleSaveEvent(eventData: Partial<CalendarEvent>) {
+		if (isConfigured && user) {
+			if (eventData.id) {
+				const { error } = await supabase
+					.from('calendar_events')
+					.update({
+						title: eventData.title,
+						category: eventData.category,
+						event_date: eventData.event_date,
+						event_time: eventData.event_time,
+						description: eventData.description,
+						is_completed: eventData.is_completed
+					})
+					.eq('id', eventData.id);
+
+				if (!error) {
+					events = events.map((e) =>
+						e.id === eventData.id ? ({ ...e, ...eventData } as CalendarEvent) : e
+					);
+					return;
+				}
+			} else {
+				const { data: newEv, error } = await supabase
+					.from('calendar_events')
+					.insert({
+						user_id: user.id,
+						title: eventData.title,
+						category: eventData.category,
+						event_date: eventData.event_date,
+						event_time: eventData.event_time,
+						description: eventData.description,
+						is_completed: eventData.is_completed || false
+					})
+					.select()
+					.single();
+
+				if (!error && newEv) {
+					events = [...events, newEv as CalendarEvent];
+					return;
+				}
+			}
+		}
+
+		// Fallback a localStorage para modo demo o si la tabla en Supabase no ha sido migrada aún
+		const local = JSON.parse(localStorage.getItem(LOCAL_EVENTS_KEY) || '[]');
+		let updatedLocal: CalendarEvent[];
+		if (eventData.id) {
+			updatedLocal = local.map((e: CalendarEvent) =>
+				e.id === eventData.id ? { ...e, ...eventData } : e
+			);
+		} else {
+			const newEv: CalendarEvent = {
+				id: `event-${Date.now()}`,
+				user_id: user?.id || 'demo-user',
+				title: eventData.title || '',
+				category: eventData.category || 'evento',
+				event_date: eventData.event_date || viewingDate,
+				event_time: eventData.event_time || null,
+				description: eventData.description || '',
+				is_completed: false,
+				created_at: new Date().toISOString()
+			};
+			updatedLocal = [...local, newEv];
+		}
+		events = updatedLocal;
+		localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(updatedLocal));
+	}
+
+	async function handleToggleCompleteEvent(eventId: string, currentCompleted: boolean) {
+		const newStatus = !currentCompleted;
+		events = events.map((e) => (e.id === eventId ? { ...e, is_completed: newStatus } : e));
+
+		if (isConfigured && user) {
+			const { error } = await supabase
+				.from('calendar_events')
+				.update({ is_completed: newStatus })
+				.eq('id', eventId);
+			if (!error) return;
+		}
+
+		const local = JSON.parse(localStorage.getItem(LOCAL_EVENTS_KEY) || '[]');
+		const updated = local.map((e: CalendarEvent) =>
+			e.id === eventId ? { ...e, is_completed: newStatus } : e
+		);
+		localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(updated));
+	}
+
+	async function handleDeleteEvent(eventId: string) {
+		events = events.filter((e) => e.id !== eventId);
+
+		if (isConfigured && user) {
+			const { error } = await supabase.from('calendar_events').delete().eq('id', eventId);
+			if (!error) return;
+		}
+
+		const local = JSON.parse(localStorage.getItem(LOCAL_EVENTS_KEY) || '[]');
+		const updated = local.filter((e: CalendarEvent) => e.id !== eventId);
+		localStorage.setItem(LOCAL_EVENTS_KEY, JSON.stringify(updated));
+	}
 </script>
 
 <div class="space-y-6 pb-12">
@@ -544,6 +705,15 @@
 			</div>
 
 			<div class="lg:col-span-5 space-y-6">
+				<DayEventsCard
+					{events}
+					{viewingDate}
+					onOpenAddModal={handleOpenAddEventModal}
+					onToggleComplete={handleToggleCompleteEvent}
+					onEditEvent={handleEditEvent}
+					onDeleteEvent={handleDeleteEvent}
+				/>
+
 				<QuickNotes
 					{notes}
 					onAddNote={handleAddNote}
@@ -562,3 +732,15 @@
 		</div>
 	{/if}
 </div>
+
+<!-- Modal para añadir o editar evento desde el panel diario -->
+<CalendarEventModal
+	show={showEventModal}
+	initialDate={viewingDate}
+	{editingEvent}
+	onSave={handleSaveEvent}
+	onClose={() => {
+		showEventModal = false;
+		editingEvent = null;
+	}}
+/>

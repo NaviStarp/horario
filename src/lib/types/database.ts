@@ -80,3 +80,71 @@ export const CATEGORIES: Record<string, CategoryMeta> = {
 		dotClass: 'bg-[#a78bfa]'
 	}
 };
+
+export type CalendarEventType = 'examen' | 'tarea' | 'recordatorio' | 'evento';
+
+export type CalendarEvent = {
+	id: string;
+	user_id: string;
+	title: string;
+	event_date: string; // 'YYYY-MM-DD'
+	event_time?: string | null; // 'HH:MM'
+	category: CalendarEventType | string;
+	description?: string;
+	is_completed: boolean;
+	created_at?: string;
+};
+
+export type EventCategoryMeta = {
+	id: CalendarEventType;
+	label: string;
+	badgeClass: string;
+	borderClass: string;
+	textClass: string;
+	bgClass: string;
+	dotClass: string;
+	iconName: 'GraduationCap' | 'CheckSquare' | 'Bell' | 'Calendar';
+};
+
+export const EVENT_CATEGORIES: Record<CalendarEventType, EventCategoryMeta> = {
+	examen: {
+		id: 'examen',
+		label: 'Examen / Prueba',
+		badgeClass: 'bg-[#ef4444]/15 text-[#ef4444] border-[#ef4444]/30',
+		borderClass: 'border-[#ef4444]/35',
+		textClass: 'text-[#ef4444]',
+		bgClass: 'bg-[#ef4444]/10',
+		dotClass: 'bg-[#ef4444]',
+		iconName: 'GraduationCap'
+	},
+	tarea: {
+		id: 'tarea',
+		label: 'Tarea / Entrega',
+		badgeClass: 'bg-[#38bdf8]/15 text-[#38bdf8] border-[#38bdf8]/30',
+		borderClass: 'border-[#38bdf8]/35',
+		textClass: 'text-[#38bdf8]',
+		bgClass: 'bg-[#38bdf8]/10',
+		dotClass: 'bg-[#38bdf8]',
+		iconName: 'CheckSquare'
+	},
+	recordatorio: {
+		id: 'recordatorio',
+		label: 'Recordatorio',
+		badgeClass: 'bg-[#f59e0b]/15 text-[#f59e0b] border-[#f59e0b]/30',
+		borderClass: 'border-[#f59e0b]/35',
+		textClass: 'text-[#f59e0b]',
+		bgClass: 'bg-[#f59e0b]/10',
+		dotClass: 'bg-[#f59e0b]',
+		iconName: 'Bell'
+	},
+	evento: {
+		id: 'evento',
+		label: 'Evento / Cita',
+		badgeClass: 'bg-[#a78bfa]/15 text-[#a78bfa] border-[#a78bfa]/30',
+		borderClass: 'border-[#a78bfa]/35',
+		textClass: 'text-[#a78bfa]',
+		bgClass: 'bg-[#a78bfa]/10',
+		dotClass: 'bg-[#a78bfa]',
+		iconName: 'Calendar'
+	}
+};

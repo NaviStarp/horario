@@ -121,15 +121,15 @@
 							href={resolve('/')}
 							class="px-3 py-1.5 rounded-[6px] border border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)] transition-all flex items-center gap-1.5 font-medium"
 						>
-							<Calendar class="w-3.5 h-3.5 text-[#10b981]" />
+							<Clock class="w-3.5 h-3.5 text-[#10b981]" />
 							<span>Dashboard</span>
 						</a>
 						<a
 							href={resolve('/historial')}
 							class="px-3 py-1.5 rounded-[6px] border border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)] transition-all flex items-center gap-1.5 font-medium"
 						>
-							<History class="w-3.5 h-3.5 text-[#34d399]" />
-							<span>Historial</span>
+							<Calendar class="w-3.5 h-3.5 text-[#34d399]" />
+							<span>Calendario</span>
 						</a>
 					</nav>
 				{/if}
