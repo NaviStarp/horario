@@ -95,8 +95,8 @@
 
 <div class="min-h-screen flex flex-col bg-[#010302] text-[#f3f4f6] font-sans selection:bg-[#10b981]/20 selection:text-[#34d399]">
 	<!-- Barra superior -->
-	<header class="sticky top-0 z-40 w-full backdrop-blur-md bg-[#070d0a]/90 border-b border-[rgba(255,255,255,0.08)] px-4 sm:px-6 py-3 transition-colors">
-		<div class="max-w-6xl mx-auto flex items-center justify-between gap-4">
+	<header class="sticky top-0 z-40 w-full backdrop-blur-md bg-[#070d0a]/90 border-b border-[rgba(255,255,255,0.08)] px-3 sm:px-6 lg:px-8 py-2.5 sm:py-3 transition-colors">
+		<div class="max-w-[1600px] mx-auto flex items-center justify-between gap-4">
 			<div class="flex items-center gap-6">
 				<a href={resolve('/')} class="flex items-center gap-2.5 group">
 					<div class="w-8 h-8 rounded-[8px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981] flex items-center justify-center shadow-[0_0_12px_rgba(16,185,129,0.18)] group-hover:border-[#10b981] transition-all">
@@ -116,17 +116,25 @@
 				</a>
 
 				{#if currentUser || auth.isDemo || !data.isConfigured}
-					<nav class="hidden sm:flex items-center gap-1 text-xs">
+					{@const isDashboard = page.url.pathname === resolve('/') || page.url.pathname === resolve('/') + '/'}
+					{@const isHistorial = page.url.pathname.includes('/historial')}
+					<nav class="hidden sm:flex items-center gap-1.5 text-xs">
 						<a
 							href={resolve('/')}
-							class="px-3 py-1.5 rounded-[6px] border border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)] transition-all flex items-center gap-1.5 font-medium"
+							class="px-3 py-1.5 rounded-[6px] border transition-all flex items-center gap-1.5 font-medium
+								{isDashboard
+									? 'bg-[#0e1813] border-[rgba(16,185,129,0.32)] text-[#10b981] shadow-[0_0_8px_rgba(16,185,129,0.15)]'
+									: 'border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)]'}"
 						>
 							<Clock class="w-3.5 h-3.5 text-[#10b981]" />
 							<span>Dashboard</span>
 						</a>
 						<a
 							href={resolve('/historial')}
-							class="px-3 py-1.5 rounded-[6px] border border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)] transition-all flex items-center gap-1.5 font-medium"
+							class="px-3 py-1.5 rounded-[6px] border transition-all flex items-center gap-1.5 font-medium
+								{isHistorial
+									? 'bg-[#0e1813] border-[rgba(52,211,153,0.32)] text-[#34d399] shadow-[0_0_8px_rgba(52,211,153,0.15)]'
+									: 'border-transparent text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e] hover:border-[rgba(255,255,255,0.08)]'}"
 						>
 							<Calendar class="w-3.5 h-3.5 text-[#34d399]" />
 							<span>Calendario</span>
@@ -144,7 +152,7 @@
 						title="Instalar aplicación en tu pantalla de inicio"
 					>
 						<Download class="w-3.5 h-3.5" />
-						<span>Instalar App</span>
+						<span class="hidden xs:inline">Instalar App</span>
 					</button>
 				{/if}
 
@@ -189,7 +197,7 @@
 	</header>
 
 	<!-- Contenido -->
-	<main class="flex-1 max-w-6xl w-full mx-auto p-4 sm:p-6">
+	<main class="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 pb-24 sm:pb-8">
 		{#if auth.loading}
 			<div class="min-h-[50vh] flex flex-col items-center justify-center text-[#64748b] gap-3">
 				<div class="w-8 h-8 rounded-full border-2 border-[rgba(16,185,129,0.2)] border-t-[#10b981] animate-spin"></div>
@@ -200,9 +208,32 @@
 		{/if}
 	</main>
 
+	<!-- Barra de navegación inferior móvil para mayor comodidad táctil -->
+	{#if currentUser || auth.isDemo || !data.isConfigured}
+		{@const isDashboard = page.url.pathname === resolve('/') || page.url.pathname === resolve('/') + '/'}
+		{@const isHistorial = page.url.pathname.includes('/historial')}
+		<nav aria-label="Navegación móvil inferior" class="sm:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#070d0a]/95 backdrop-blur-md border-t border-[rgba(255,255,255,0.08)] px-6 py-2 flex items-center justify-around shadow-[0_-4px_20px_rgba(0,0,0,0.6)]">
+			<a
+				href={resolve('/')}
+				class="flex flex-col items-center gap-1 py-1 px-4 rounded-[8px] transition-all {isDashboard ? 'text-[#10b981] font-semibold bg-[#0e1813] border border-[rgba(16,185,129,0.32)] shadow-[0_0_8px_rgba(16,185,129,0.2)]' : 'text-[#9ca3af] hover:text-[#f3f4f6]'}"
+			>
+				<Clock class="w-5 h-5 stroke-[2.2]" />
+				<span class="text-[11px] font-medium">Dashboard</span>
+			</a>
+
+			<a
+				href={resolve('/historial')}
+				class="flex flex-col items-center gap-1 py-1 px-4 rounded-[8px] transition-all {isHistorial ? 'text-[#34d399] font-semibold bg-[#0e1813] border border-[rgba(52,211,153,0.32)] shadow-[0_0_8px_rgba(52,211,153,0.2)]' : 'text-[#9ca3af] hover:text-[#f3f4f6]'}"
+			>
+				<Calendar class="w-5 h-5 stroke-[2.2]" />
+				<span class="text-[11px] font-medium">Calendario</span>
+			</a>
+		</nav>
+	{/if}
+
 	<!-- Pie de página -->
-	<footer class="py-4 border-t border-[rgba(255,255,255,0.08)] bg-[#000000] text-center text-xs text-[#64748b]">
-		<div class="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+	<footer class="py-4 border-t border-[rgba(255,255,255,0.08)] bg-[#000000] text-center text-xs text-[#64748b] pb-24 sm:pb-4">
+		<div class="max-w-[1600px] mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
 			<div class="flex items-center gap-2 justify-center sm:justify-start">
 				<span class="w-1.5 h-1.5 rounded-full bg-[#10b981]"></span>
 				<span>Horario, Notas Rápidas &amp; Diario Personal</span>

@@ -8,7 +8,8 @@
 		getTodayString,
 		formatDisplayDate,
 		shiftDate,
-		isToday
+		isToday,
+		getDayGroup
 	} from '#lib/utils/timeHelpers';
 
 	import ScheduleList from '#lib/components/ScheduleList.svelte';
@@ -23,11 +24,19 @@
 		ChevronLeft,
 		ChevronRight,
 		Calendar as CalendarIcon,
+		CalendarDays,
 		RotateCcw,
-		Loader2
+		Loader2,
+		Clock,
+		StickyNote,
+		BookOpen,
+		LayoutGrid
 	} from 'lucide-svelte';
 
 	let { data }: PageProps = $props();
+
+	type ViewTab = 'todo' | 'horario' | 'eventos' | 'notas' | 'diario';
+	let activeView = $state<ViewTab>('todo');
 
 	let viewingDate = $state(getTodayString());
 	let blocks = $state<ScheduleBlock[]>([]);
@@ -42,6 +51,26 @@
 
 	let isConfigured = $derived(data.isConfigured);
 	let user = $derived(auth.user);
+
+	// Métricas calculadas para la barra de resumen rápido y badges
+	let autoDayGroup = $derived(getDayGroup(viewingDate));
+	let todayBlocks = $derived(
+		blocks.filter((b) => b.day_group === 'all' || b.day_group === autoDayGroup)
+	);
+	let todayCompletedCount = $derived(
+		todayBlocks.filter((b) => completedBlockIds.includes(b.id)).length
+	);
+	let todayBlocksCount = $derived(todayBlocks.length);
+	let todayBlocksPercent = $derived(
+		todayBlocksCount > 0 ? Math.round((todayCompletedCount / todayBlocksCount) * 100) : 0
+	);
+
+	let todayEvents = $derived(events.filter((e) => e.event_date === viewingDate));
+	let pendingExamsCount = $derived(
+		todayEvents.filter((e) => e.category === 'examen' && !e.is_completed).length
+	);
+	let activeNotesCount = $derived(notes.filter((n) => !n.is_archived).length);
+	let hasDiary = $derived(diaryContent.trim().length > 0 || Boolean(diaryMood));
 
 	const LOCAL_BLOCKS_KEY = 'demo_horario_blocks';
 	const LOCAL_LOGS_KEY = 'demo_horario_daily_logs';
@@ -565,9 +594,10 @@
 </script>
 
 <div class="space-y-6 pb-12">
-	<!-- Selector de Fecha -->
-	<section class="cad-frame bg-[#070d0a] rounded-[10px] p-4 sm:p-5 border border-[rgba(255,255,255,0.08)] transition-all">
+	<!-- Selector de Fecha & Resumen Rápido -->
+	<section class="cad-frame bg-[#070d0a] rounded-[10px] p-4 sm:p-5 border border-[rgba(255,255,255,0.08)] transition-all space-y-4">
 		<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+			<!-- Fecha y selector nativo -->
 			<div class="flex items-center gap-3">
 				<div class="relative">
 					<input
@@ -579,10 +609,10 @@
 					/>
 					<label
 						for="native-date-picker"
-						class="p-2.5 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981] hover:border-[#10b981] hover:shadow-[0_0_8px_rgba(16,185,129,0.2)] cursor-pointer flex items-center justify-center transition-all"
-						title="Seleccionar otra fecha"
+						class="w-10 h-10 rounded-[8px] bg-[#0a120e] border border-[rgba(16,185,129,0.32)] text-[#10b981] hover:border-[#10b981] hover:shadow-[0_0_8px_rgba(16,185,129,0.2)] cursor-pointer flex items-center justify-center transition-all"
+						title="Seleccionar otra fecha en el calendario"
 					>
-						<CalendarIcon class="w-4 h-4" />
+						<CalendarIcon class="w-4 h-4 stroke-[2.2]" />
 					</label>
 				</div>
 
@@ -597,24 +627,24 @@
 							</span>
 						{/if}
 						{#if diaryMood}
-							<span class="text-sm" title="Estado de ánimo registrado">{diaryMood}</span>
+							<span class="text-sm px-1.5 py-0.5 rounded-[4px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)]" title="Estado de ánimo registrado">{diaryMood}</span>
 						{/if}
 					</div>
 					<p class="text-xs text-[#64748b] mt-0.5">
-						Planifica tu rutina, anota ideas y reflexiona al final del día
+						Planifica tu rutina diaria, anota ideas y reflexiona al final del día
 					</p>
 				</div>
 			</div>
 
-			<!-- Botones de navegación -->
-			<div class="flex items-center gap-1.5 self-end sm:self-center text-xs">
+			<!-- Botones de navegación de días (Grandes y táctiles para móvil) -->
+			<div class="flex items-center gap-2 self-stretch sm:self-center justify-between sm:justify-end text-xs">
 				<button
 					type="button"
 					onclick={() => switchDate(shiftDate(viewingDate, -1))}
-					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer font-medium"
+					class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] active:scale-95 transition-all cursor-pointer font-medium min-h-[38px]"
 					title="Día anterior"
 				>
-					<ChevronLeft class="w-3.5 h-3.5 text-[#10b981]" />
+					<ChevronLeft class="w-4 h-4 text-[#10b981]" />
 					<span>Ayer</span>
 				</button>
 
@@ -622,42 +652,170 @@
 					<button
 						type="button"
 						onclick={() => switchDate(getTodayString())}
-						class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] font-semibold bg-[#10b981] text-[#010302] hover:bg-[#34d399] transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer"
+						class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-[6px] font-semibold bg-[#10b981] text-[#010302] hover:bg-[#34d399] active:scale-95 transition-all shadow-[0_0_10px_rgba(16,185,129,0.3)] cursor-pointer min-h-[38px]"
 					>
-						<RotateCcw class="w-3 h-3 stroke-[3]" />
-						Hoy
+						<RotateCcw class="w-3.5 h-3.5 stroke-[3]" />
+						<span>Hoy</span>
 					</button>
 				{/if}
 
 				<button
 					type="button"
 					onclick={() => switchDate(shiftDate(viewingDate, 1))}
-					class="inline-flex items-center gap-1 px-3 py-1.5 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] transition-all cursor-pointer font-medium"
+					class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-[6px] bg-[#0a120e] border border-[rgba(255,255,255,0.08)] text-[#9ca3af] hover:text-[#f3f4f6] hover:border-[rgba(255,255,255,0.16)] active:scale-95 transition-all cursor-pointer font-medium min-h-[38px]"
 					title="Día siguiente"
 				>
 					<span>Mañana</span>
-					<ChevronRight class="w-3.5 h-3.5 text-[#10b981]" />
+					<ChevronRight class="w-4 h-4 text-[#10b981]" />
 				</button>
 			</div>
 		</div>
+
+		<!-- Mini resumen del día (Chips interactivos con datos clave) -->
+		<div class="pt-3 border-t border-[rgba(255,255,255,0.06)] grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+			<button
+				type="button"
+				onclick={() => (activeView = 'horario')}
+				class="p-2 rounded-[6px] bg-[#0a120e]/60 border border-[rgba(255,255,255,0.05)] hover:border-[rgba(16,185,129,0.3)] flex items-center justify-between text-left transition-all cursor-pointer {activeView === 'horario' ? 'border-[rgba(16,185,129,0.5)] bg-[#0e1813]' : ''}"
+			>
+				<span class="text-[#64748b]">Rutina:</span>
+				<span class="font-mono font-medium {todayBlocksPercent === 100 && todayBlocksCount > 0 ? 'text-[#10b981]' : 'text-[#f3f4f6]'}">
+					{todayCompletedCount}/{todayBlocksCount} ({todayBlocksPercent}%)
+				</span>
+			</button>
+
+			<button
+				type="button"
+				onclick={() => (activeView = 'eventos')}
+				class="p-2 rounded-[6px] bg-[#0a120e]/60 border border-[rgba(255,255,255,0.05)] hover:border-[rgba(16,185,129,0.3)] flex items-center justify-between text-left transition-all cursor-pointer {activeView === 'eventos' ? 'border-[rgba(16,185,129,0.5)] bg-[#0e1813]' : ''}"
+			>
+				<span class="text-[#64748b]">Eventos:</span>
+				<span class="font-mono font-medium {pendingExamsCount > 0 ? 'text-[#ef4444] font-bold' : 'text-[#f3f4f6]'}">
+					{todayEvents.length} hoy {#if pendingExamsCount > 0}⚠️{/if}
+				</span>
+			</button>
+
+			<button
+				type="button"
+				onclick={() => (activeView = 'notas')}
+				class="p-2 rounded-[6px] bg-[#0a120e]/60 border border-[rgba(255,255,255,0.05)] hover:border-[rgba(16,185,129,0.3)] flex items-center justify-between text-left transition-all cursor-pointer {activeView === 'notas' ? 'border-[rgba(16,185,129,0.5)] bg-[#0e1813]' : ''}"
+			>
+				<span class="text-[#64748b]">Notas:</span>
+				<span class="font-mono font-medium text-[#f3f4f6]">{activeNotesCount} activas</span>
+			</button>
+
+			<button
+				type="button"
+				onclick={() => (activeView = 'diario')}
+				class="p-2 rounded-[6px] bg-[#0a120e]/60 border border-[rgba(255,255,255,0.05)] hover:border-[rgba(16,185,129,0.3)] flex items-center justify-between text-left transition-all cursor-pointer {activeView === 'diario' ? 'border-[rgba(16,185,129,0.5)] bg-[#0e1813]' : ''}"
+			>
+				<span class="text-[#64748b]">Diario:</span>
+				<span class="font-medium {hasDiary ? 'text-[#10b981]' : 'text-[#64748b]'}">
+					{hasDiary ? 'Escrito ✓' : 'Pendiente'}
+				</span>
+			</button>
+		</div>
 	</section>
+
+	<!-- Barra Segmentada de Vistas (Selector rápido para móvil y escritorio) -->
+	<nav aria-label="Filtro de secciones del panel" class="flex items-center gap-1.5 p-1 bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] overflow-x-auto">
+		<button
+			type="button"
+			onclick={() => (activeView = 'todo')}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-[7px] text-xs font-medium whitespace-nowrap transition-all cursor-pointer min-h-[38px]
+				{activeView === 'todo'
+					? 'bg-[#0e1813] border border-[rgba(16,185,129,0.4)] text-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.2)] font-semibold'
+					: 'text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e]'}"
+		>
+			<LayoutGrid class="w-4 h-4 text-[#10b981]" />
+			<span>Vista Completa</span>
+		</button>
+
+		<button
+			type="button"
+			onclick={() => (activeView = 'horario')}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-[7px] text-xs font-medium whitespace-nowrap transition-all cursor-pointer min-h-[38px]
+				{activeView === 'horario'
+					? 'bg-[#0e1813] border border-[rgba(16,185,129,0.4)] text-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.2)] font-semibold'
+					: 'text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e]'}"
+		>
+			<Clock class="w-4 h-4 text-[#10b981]" />
+			<span>Horario</span>
+			{#if todayBlocksCount > 0}
+				<span class="px-1.5 py-0.2 rounded-[4px] text-[10px] font-mono {todayCompletedCount === todayBlocksCount ? 'bg-[#10b981]/20 text-[#10b981]' : 'bg-[#0a120e] text-[#9ca3af]'} border border-[rgba(255,255,255,0.08)]">
+					{todayCompletedCount}/{todayBlocksCount}
+				</span>
+			{/if}
+		</button>
+
+		<button
+			type="button"
+			onclick={() => (activeView = 'eventos')}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-[7px] text-xs font-medium whitespace-nowrap transition-all cursor-pointer min-h-[38px]
+				{activeView === 'eventos'
+					? 'bg-[#0e1813] border border-[rgba(16,185,129,0.4)] text-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.2)] font-semibold'
+					: 'text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e]'}"
+		>
+			<CalendarDays class="w-4 h-4 text-[#34d399]" />
+			<span>Eventos</span>
+			{#if todayEvents.length > 0}
+				<span class="px-1.5 py-0.2 rounded-[4px] text-[10px] font-mono {pendingExamsCount > 0 ? 'bg-[#ef4444]/20 text-[#ef4444] border border-[#ef4444]/40 font-bold animate-pulse' : 'bg-[#0a120e] text-[#9ca3af] border border-[rgba(255,255,255,0.08)]'}">
+					{todayEvents.length}
+				</span>
+			{/if}
+		</button>
+
+		<button
+			type="button"
+			onclick={() => (activeView = 'notas')}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-[7px] text-xs font-medium whitespace-nowrap transition-all cursor-pointer min-h-[38px]
+				{activeView === 'notas'
+					? 'bg-[#0e1813] border border-[rgba(16,185,129,0.4)] text-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.2)] font-semibold'
+					: 'text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e]'}"
+		>
+			<StickyNote class="w-4 h-4 text-[#38bdf8]" />
+			<span>Notas</span>
+			{#if activeNotesCount > 0}
+				<span class="px-1.5 py-0.2 rounded-[4px] text-[10px] font-mono bg-[#0a120e] text-[#9ca3af] border border-[rgba(255,255,255,0.08)]">
+					{activeNotesCount}
+				</span>
+			{/if}
+		</button>
+
+		<button
+			type="button"
+			onclick={() => (activeView = 'diario')}
+			class="inline-flex items-center gap-2 px-3.5 py-2 rounded-[7px] text-xs font-medium whitespace-nowrap transition-all cursor-pointer min-h-[38px]
+				{activeView === 'diario'
+					? 'bg-[#0e1813] border border-[rgba(16,185,129,0.4)] text-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.2)] font-semibold'
+					: 'text-[#9ca3af] hover:text-[#f3f4f6] hover:bg-[#0a120e]'}"
+		>
+			<BookOpen class="w-4 h-4 text-[#a78bfa]" />
+			<span>Diario</span>
+			{#if diaryMood}
+				<span class="text-xs">{diaryMood}</span>
+			{:else if hasDiary}
+				<span class="w-1.5 h-1.5 rounded-full bg-[#10b981] shadow-[0_0_6px_#10b981]"></span>
+			{/if}
+		</button>
+	</nav>
 
 	<!-- Vista Principal o Animación de Carga -->
 	{#if isLoading}
-		<!-- Animación de carga y skeleton pulido -->
-		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start animate-pulse">
-			<div class="lg:col-span-7 bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
+		<!-- Animación de carga y skeleton pulido adaptable a 3 columnas -->
+		<div class="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-6 items-start animate-pulse">
+			<div class="lg:col-span-6 xl:col-span-4 bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
 				<div class="flex items-center justify-between pb-3 border-b border-[rgba(255,255,255,0.08)]">
 					<div class="flex items-center gap-2.5">
 						<div class="w-8 h-8 rounded-[6px] bg-[#0a120e] border border-[rgba(16,185,129,0.2)] flex items-center justify-center">
 							<Loader2 class="w-4 h-4 text-[#10b981] animate-spin" />
 						</div>
 						<div>
-							<div class="h-4 w-32 bg-[#0e1813] rounded"></div>
-							<div class="h-3 w-20 bg-[#0a120e] rounded mt-1.5"></div>
+							<div class="h-4 w-28 bg-[#0e1813] rounded"></div>
+							<div class="h-3 w-16 bg-[#0a120e] rounded mt-1.5"></div>
 						</div>
 					</div>
-					<div class="h-6 w-24 bg-[#0a120e] rounded"></div>
+					<div class="h-6 w-20 bg-[#0a120e] rounded"></div>
 				</div>
 
 				<div class="h-2 w-full bg-[#0a120e] rounded-full overflow-hidden">
@@ -669,30 +827,50 @@
 						<div class="p-3.5 rounded-[8px] bg-[#09110d] border border-[rgba(255,255,255,0.05)] flex items-center gap-3">
 							<div class="w-5 h-5 rounded bg-[#0a120e] border border-[rgba(255,255,255,0.08)]"></div>
 							<div class="flex-1 space-y-2">
-								<div class="h-3 w-28 bg-[#0e1813] rounded"></div>
-								<div class="h-4 w-48 bg-[#0a120e] rounded"></div>
+								<div class="h-3 w-24 bg-[#0e1813] rounded"></div>
+								<div class="h-4 w-40 bg-[#0a120e] rounded"></div>
 							</div>
 						</div>
 					{/each}
 				</div>
 			</div>
 
-			<div class="lg:col-span-5 space-y-6">
+			<div class="lg:col-span-6 xl:col-span-4 space-y-6">
 				<div class="bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
-					<div class="h-4 w-28 bg-[#0e1813] rounded"></div>
-					<div class="h-9 w-full bg-[#0a120e] rounded-[6px]"></div>
+					<div class="flex items-center justify-between pb-3 border-b border-[rgba(255,255,255,0.08)]">
+						<div class="h-4 w-32 bg-[#0e1813] rounded"></div>
+						<div class="h-6 w-16 bg-[#0a120e] rounded"></div>
+					</div>
 					<div class="h-16 w-full bg-[#09110d] rounded-[6px]"></div>
 				</div>
 
 				<div class="bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
-					<div class="h-4 w-32 bg-[#0e1813] rounded"></div>
-					<div class="h-40 w-full bg-[#0a120e] rounded-[6px]"></div>
+					<div class="h-4 w-28 bg-[#0e1813] rounded"></div>
+					<div class="h-9 w-full bg-[#0a120e] rounded-[6px]"></div>
+					<div class="h-14 w-full bg-[#09110d] rounded-[6px]"></div>
+				</div>
+			</div>
+
+			<div class="lg:col-span-12 xl:col-span-4 space-y-6">
+				<div class="bg-[#070d0a] rounded-[10px] border border-[rgba(255,255,255,0.08)] p-5 space-y-4">
+					<div class="flex items-center justify-between pb-3 border-b border-[rgba(255,255,255,0.08)]">
+						<div class="h-4 w-32 bg-[#0e1813] rounded"></div>
+						<div class="h-6 w-20 bg-[#0a120e] rounded"></div>
+					</div>
+					<div class="flex gap-2">
+						{#each [1, 2, 3, 4, 5] as _}
+							<div class="w-8 h-8 rounded-full bg-[#0a120e]"></div>
+						{/each}
+					</div>
+					<div class="h-44 w-full bg-[#0a120e] rounded-[6px]"></div>
 				</div>
 			</div>
 		</div>
-	{:else}
-		<div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-			<div class="lg:col-span-7 space-y-6">
+	{:else if activeView === 'todo'}
+		<!-- VISTA COMPLETA: 3 Columnas equilibradas en pantallas amplias (Desktop), 2 en medianas, 1 en móvil -->
+		<div class="grid grid-cols-1 lg:grid-cols-12 xl:grid-cols-12 gap-6 items-start">
+			<!-- Columna 1: Horario / Rutina Diaria -->
+			<div class="lg:col-span-6 xl:col-span-4 space-y-6">
 				<ScheduleList
 					{blocks}
 					{completedBlockIds}
@@ -704,7 +882,8 @@
 				/>
 			</div>
 
-			<div class="lg:col-span-5 space-y-6">
+			<!-- Columna 2: Eventos del Día & Notas Rápidas -->
+			<div class="lg:col-span-6 xl:col-span-4 space-y-6">
 				<DayEventsCard
 					{events}
 					{viewingDate}
@@ -721,7 +900,10 @@
 					onToggleArchive={handleToggleArchive}
 					onDeleteNote={handleDeleteNote}
 				/>
+			</div>
 
+			<!-- Columna 3: Diario del Día -->
+			<div class="lg:col-span-12 xl:col-span-4 space-y-6">
 				<DiaryEditor
 					{diaryContent}
 					mood={diaryMood}
@@ -729,6 +911,92 @@
 					onSaveDiary={handleSaveDiary}
 				/>
 			</div>
+		</div>
+	{:else if activeView === 'horario'}
+		<!-- VISTA ENFOCADA: Horario -->
+		<div class="max-w-4xl mx-auto space-y-4">
+			<div class="flex items-center justify-between px-1">
+				<span class="text-xs text-[#9ca3af]">Sección activa: Horario y Rutina</span>
+				<button
+					type="button"
+					onclick={() => (activeView = 'todo')}
+					class="text-xs text-[#10b981] hover:underline cursor-pointer"
+				>
+					← Volver a vista completa
+				</button>
+			</div>
+			<ScheduleList
+				{blocks}
+				{completedBlockIds}
+				{viewingDate}
+				onToggleComplete={handleToggleComplete}
+				onSaveBlock={handleSaveBlock}
+				onDeleteBlock={handleDeleteBlock}
+				onLoadTemplate={handleLoadTemplate}
+			/>
+		</div>
+	{:else if activeView === 'eventos'}
+		<!-- VISTA ENFOCADA: Eventos y Recordatorios -->
+		<div class="max-w-4xl mx-auto space-y-4">
+			<div class="flex items-center justify-between px-1">
+				<span class="text-xs text-[#9ca3af]">Sección activa: Eventos, Exámenes y Tareas</span>
+				<button
+					type="button"
+					onclick={() => (activeView = 'todo')}
+					class="text-xs text-[#10b981] hover:underline cursor-pointer"
+				>
+					← Volver a vista completa
+				</button>
+			</div>
+			<DayEventsCard
+				{events}
+				{viewingDate}
+				onOpenAddModal={handleOpenAddEventModal}
+				onToggleComplete={handleToggleCompleteEvent}
+				onEditEvent={handleEditEvent}
+				onDeleteEvent={handleDeleteEvent}
+			/>
+		</div>
+	{:else if activeView === 'notas'}
+		<!-- VISTA ENFOCADA: Notas Rápidas -->
+		<div class="max-w-4xl mx-auto space-y-4">
+			<div class="flex items-center justify-between px-1">
+				<span class="text-xs text-[#9ca3af]">Sección activa: Bandeja de Notas Rápidas</span>
+				<button
+					type="button"
+					onclick={() => (activeView = 'todo')}
+					class="text-xs text-[#10b981] hover:underline cursor-pointer"
+				>
+					← Volver a vista completa
+				</button>
+			</div>
+			<QuickNotes
+				{notes}
+				onAddNote={handleAddNote}
+				onTogglePin={handleTogglePin}
+				onToggleArchive={handleToggleArchive}
+				onDeleteNote={handleDeleteNote}
+			/>
+		</div>
+	{:else if activeView === 'diario'}
+		<!-- VISTA ENFOCADA: Diario Personal -->
+		<div class="max-w-4xl mx-auto space-y-4">
+			<div class="flex items-center justify-between px-1">
+				<span class="text-xs text-[#9ca3af]">Sección activa: Diario y Reflexión</span>
+				<button
+					type="button"
+					onclick={() => (activeView = 'todo')}
+					class="text-xs text-[#10b981] hover:underline cursor-pointer"
+				>
+					← Volver a vista completa
+				</button>
+			</div>
+			<DiaryEditor
+				{diaryContent}
+				mood={diaryMood}
+				{viewingDate}
+				onSaveDiary={handleSaveDiary}
+			/>
 		</div>
 	{/if}
 </div>
